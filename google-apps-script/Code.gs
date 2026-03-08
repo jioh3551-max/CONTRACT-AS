@@ -495,7 +495,7 @@ function normalizeAdminRecord_(record) {
   const next = {};
   next.id = trimText_(record.id);
   next.name = trimText_(record.name);
-  next.phone = digitsOnly_(record.phone);
+  next.phone = normalizeAdminPhone_(record.phone);
   next.isActive = normalizeActiveFlag_(record.isActive);
   next.createdAt = trimText_(record.createdAt);
   next.updatedAt = trimText_(record.updatedAt);
@@ -508,6 +508,15 @@ function trimText_(value) {
 
 function digitsOnly_(value) {
   return String(value == null ? '' : value).replace(/[^0-9]/g, '');
+}
+
+function normalizeAdminPhone_(value) {
+  var digits = digitsOnly_(value);
+  if (!digits) return '';
+  if (digits.length === 10 && digits.charAt(0) !== '0') {
+    return '0' + digits;
+  }
+  return digits;
 }
 
 function normalizeListText_(value) {
