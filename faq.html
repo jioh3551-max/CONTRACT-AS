@@ -1,0 +1,223 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>아이콩콩 FAQ</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --mint: #48b7b6;
+      --mint-deep: #2f9191;
+      --pink: #f3a6bd;
+      --ink: #243347;
+      --muted: #66758a;
+      --bg: #edf4f4;
+      --card: #ffffff;
+      --line: #d9e3e7;
+      --shadow: 0 12px 24px rgba(36, 68, 75, 0.1);
+    }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "SUIT", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      background:
+        radial-gradient(900px 340px at 0% -10%, rgba(72, 183, 182, 0.16) 0%, rgba(72, 183, 182, 0) 62%),
+        linear-gradient(180deg, #dff1f1 0%, #ecf3f3 100%);
+      color: var(--ink);
+    }
+
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 20px 14px 40px;
+    }
+
+    .top {
+      background: var(--card);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--line);
+      padding: 18px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: #314051;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(90deg, var(--mint) 0%, var(--mint-deep) 100%);
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+      padding: 11px 14px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease, filter 0.2s ease;
+    }
+    .btn:hover { filter: brightness(1.02); }
+    .btn:active { transform: translateY(1px); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 19px;
+      color: #2f3a4d;
+    }
+
+    .step {
+      margin: 0;
+      padding-left: 18px;
+      color: #475569;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fbfdff;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      transition: background-color 0.2s ease;
+    }
+    details[open] { background: #f3fcfc; }
+
+    summary {
+      cursor: pointer;
+      font-weight: 800;
+      color: #314051;
+      font-size: 14px;
+    }
+
+    details p {
+      margin: 10px 0 0;
+      color: #5b6575;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .contact {
+      margin-top: 10px;
+      border-radius: 12px;
+      background: #f6fcfc;
+      border: 1px solid #cfe7e7;
+      padding: 12px;
+      color: #41606f;
+      font-weight: 700;
+    }
+
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr; }
+      .title { font-size: 25px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="top">
+      <div>
+        <h1 class="title">고객 사용 FAQ</h1>
+        <p class="sub">아이콩콩 앱을 처음 사용하는 고객님을 위한 빠른 안내입니다.</p>
+      </div>
+      <a class="btn" href="./index.html">로그인 화면으로</a>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>1. 로그인 방법</h2>
+        <ol class="step">
+          <li>이름과 연락처를 입력합니다.</li>
+          <li>관리자 정보면 관리자 페이지로, 아니면 고객 페이지로 이동합니다.</li>
+          <li>연락처는 숫자만 입력하면 더 정확합니다.</li>
+        </ol>
+      </article>
+
+      <article class="card">
+        <h2>2. 내 계약정보 확인</h2>
+        <ol class="step">
+          <li>고객 페이지 첫 화면에서 계약정보가 자동 표시됩니다.</li>
+          <li>계약번호, 제품, 시공일자, 서명 정보까지 확인할 수 있습니다.</li>
+          <li>계약서 페이지 버튼으로 인쇄용 계약서를 열 수 있습니다.</li>
+        </ol>
+      </article>
+
+      <article class="card">
+        <h2>3. AS 접수하기</h2>
+        <ol class="step">
+          <li>상단 메뉴에서 <strong>AS 접수</strong>로 이동합니다.</li>
+          <li>AS 유형, 희망 연락 시간, 상세 내용을 입력합니다.</li>
+          <li><strong>AS 접수하기</strong> 버튼을 누르면 접수가 저장됩니다.</li>
+        </ol>
+      </article>
+
+      <article class="card">
+        <h2>4. 내 AS 진행상태 보기</h2>
+        <ol class="step">
+          <li><strong>내 AS</strong> 메뉴에서 내역을 확인합니다.</li>
+          <li>각 건마다 접수중/처리중/처리완료 상태가 보입니다.</li>
+          <li>문의 내용과 희망 연락 시간도 함께 확인됩니다.</li>
+        </ol>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2 style="margin-top:0;">자주 묻는 질문</h2>
+
+      <details>
+        <summary>Q. 계약정보가 안 보여요.</summary>
+        <p>A. 이름/연락처가 계약 저장 정보와 일치해야 표시됩니다. 입력값을 확인하고 다시 로그인해 주세요.</p>
+      </details>
+
+      <details>
+        <summary>Q. AS 접수 후 목록에 바로 안 보여요.</summary>
+        <p>A. 구글시트 동기화 상태에 따라 1~2초 지연될 수 있습니다. 고객 페이지에서 새로고침 버튼을 눌러 다시 확인해 주세요.</p>
+      </details>
+
+      <details>
+        <summary>Q. 전자서명은 어디서 확인하나요?</summary>
+        <p>A. 계약서 페이지에서 고객 서명과 시공자 서명을 함께 확인할 수 있습니다. 인쇄 시에도 동일하게 출력됩니다.</p>
+      </details>
+
+      <div class="contact">지원문의 : jioh3551@gmail.com</div>
+    </section>
+  </div>
+</body>
+</html>

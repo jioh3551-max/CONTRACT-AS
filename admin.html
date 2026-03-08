@@ -1,0 +1,3248 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>아이콩콩 관리자 페이지</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg: #edf2f8;
+      --card: #f8fbff;
+      --line: #dde5ef;
+      --text: #182230;
+      --muted: #6d7888;
+      --blue: #2f9191;
+      --blue-soft: #e8f5f4;
+      --green: #256c54;
+      --green-soft: #e7f4ee;
+      --shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+      --radius: 24px;
+      --ring: 0 0 0 3px rgba(72, 183, 182, 0.2);
+    }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "SUIT", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 420px at -10% -20%, rgba(72, 183, 182, 0.14) 0%, rgba(72, 183, 182, 0) 60%),
+        radial-gradient(900px 360px at 110% 0, rgba(239, 157, 184, 0.11) 0%, rgba(239, 157, 184, 0) 62%),
+        var(--bg);
+    }
+
+    .container { max-width: 980px; margin: 0 auto; padding: 16px 14px 60px; }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .top-icons {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .big-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #a3a4a8;
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 14px 8px 10px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .big-chip::before {
+      content: '';
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px rgba(17, 24, 39, 0.08);
+    }
+
+    .icon-btn {
+      border: 0;
+      background: transparent;
+      color: #20242c;
+      font-size: 29px;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: background-color 0.2s ease, transform 0.15s ease;
+    }
+    .icon-btn:hover { background: rgba(255, 255, 255, 0.72); }
+    .icon-btn:active { transform: translateY(1px); }
+
+    .hero-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 46px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+      line-height: 1.1;
+    }
+
+    .hero-arrow {
+      color: #2f3541;
+      font-size: 44px;
+      margin-top: -4px;
+    }
+
+    .hero-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .quick-links {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: -4px;
+    }
+
+    .link {
+      text-decoration: none;
+      color: #566070;
+      font-weight: 700;
+      border-bottom: 1px solid transparent;
+    }
+
+    .link:hover { border-bottom-color: #566070; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid rgba(47, 145, 145, 0.1);
+    }
+
+    .chip.success { background: var(--green-soft); color: var(--green); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      background: #e8eef8;
+      color: #32435c;
+      white-space: nowrap;
+    }
+
+    .badge.yellow { background: #fff4dd; color: #9a5a0a; }
+    .badge.green { background: #e8f7ef; color: #1d6b4f; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .section-gap { margin-bottom: 14px; }
+
+    .mode-switch {
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      padding: 0 2px;
+    }
+
+    .view-switch {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .tab-btn {
+      border: 0;
+      border-bottom: 3px solid transparent;
+      background: transparent;
+      color: #8b93a1;
+      border-radius: 0;
+      padding: 4px 0 8px;
+      font-size: 30px;
+      font-weight: 800;
+      cursor: pointer;
+      letter-spacing: -0.02em;
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: transparent;
+      color: #182230;
+      border-bottom-color: #2f9191;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      border: 1px solid #e7e9ee;
+      border-radius: 18px;
+      background: #ffffff;
+      padding: 14px;
+    }
+
+    .stat .k { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    .stat .v { font-size: 30px; font-weight: 900; letter-spacing: -0.02em; }
+
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .full { grid-column: 1 / -1; }
+
+    label { display: block; font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #e5e7ec;
+      border-radius: 15px;
+      padding: 12px 14px;
+      font-size: 15px;
+      background: #f2f6fb;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: rgba(72, 183, 182, 0.7);
+      box-shadow: var(--ring);
+      background: #f7fbff;
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .check-item {
+      border: 1px solid #dde2ea;
+      border-radius: 12px;
+      background: #f7f9fc;
+      padding: 9px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #3d4757;
+    }
+
+    .check-item input {
+      width: auto;
+      padding: 0;
+      margin: 0;
+    }
+
+    textarea { min-height: 110px; resize: vertical; }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      align-items: center;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 11px 14px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease, filter 0.2s ease;
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, #48b7b6 0%, #2f9191 100%);
+      color: #fff;
+      box-shadow: 0 8px 14px rgba(47, 145, 145, 0.22);
+    }
+    .btn.secondary { background: #e6f4f3; color: #236f6f; }
+    .btn.outline { background: #fff; border: 1px solid #d8dde6; color: #1f2937; }
+    .btn.tiny { padding: 7px 10px; font-size: 12px; border-radius: 10px; }
+    .btn:hover { filter: brightness(1.02); }
+    .btn:active { transform: translateY(1px); }
+
+    .notice {
+      background: #f5f7fa;
+      border: 1px solid #e2e6ec;
+      border-radius: 16px;
+      padding: 12px 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .success { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    .error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+    .contract-mode-notice {
+      margin-bottom: 14px;
+      border-color: #cfe5e8;
+      background: linear-gradient(180deg, rgba(232, 245, 244, 0.96) 0%, rgba(248, 251, 255, 0.98) 100%);
+      color: #21515a;
+    }
+    .contract-mode-notice strong { color: #173840; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      margin-bottom: 6px;
+    }
+
+    .toolbar input { max-width: 340px; }
+
+    .list-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .item-list { display: grid; gap: 14px; margin-top: 12px; }
+
+    .item {
+      border: 1px solid #e4e7ee;
+      border-radius: 20px;
+      padding: 15px;
+      background: #fff;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.03);
+    }
+
+    .item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .as-item {
+      border: 1px solid #e4e7ee;
+      border-radius: 20px;
+      padding: 14px;
+      background: #fff;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.03);
+    }
+
+    .as-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .as-note {
+      margin-top: 10px;
+      border: 1px solid #e6ebf2;
+      background: #f7f9fc;
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .item-title { font-size: 18px; font-weight: 800; }
+    .muted { color: var(--muted); font-size: 14px; }
+
+    .item-line {
+      margin-top: 10px;
+      background: #f6f7fa;
+      border: 1px solid #eceff4;
+      border-radius: 14px;
+      padding: 10px;
+      line-height: 1.6;
+      font-size: 14px;
+      color: #334155;
+    }
+
+    .sign-wrap {
+      border: 1px solid #e3e7ee;
+      border-radius: 16px;
+      padding: 10px;
+      background: #fdfdfe;
+    }
+
+    .installer-panel {
+      display: grid;
+      gap: 10px;
+    }
+
+    .profile-meta {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .signature-editor {
+      border-top: 1px dashed #d8e0ea;
+      padding-top: 10px;
+    }
+
+    .signature-preview-box {
+      border: 1px dashed #d8e0ea;
+      border-radius: 12px;
+      background: #fff;
+      padding: 12px;
+    }
+
+    .signature-preview-empty {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+
+    .as-link-card {
+      display: block;
+      color: inherit;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .as-link-card:hover {
+      transform: translateY(-1px);
+      border-color: #d1dae6;
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    .as-link-card:focus-visible {
+      outline: none;
+      box-shadow: var(--ring), 0 10px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    .as-open-row {
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .as-open-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #236f6f;
+    }
+
+    .contract-doc {
+      border: 1px solid #dbe2ec;
+      border-radius: 14px;
+      background: #fff;
+      padding: 10px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+    }
+
+    .contract-sheet-wrap {
+      position: relative;
+      border: 1px solid #d5deea;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .contract-sheet-image {
+      width: 100%;
+      display: block;
+      height: auto;
+    }
+
+    .contract-overlay {
+      position: absolute;
+      inset: 0;
+    }
+
+    .overlay-input {
+      position: absolute;
+      border: 0;
+      border-bottom: 1px solid rgba(17, 24, 39, 0.55);
+      border-radius: 0;
+      background: transparent;
+      padding: 0 2px 1px;
+      color: #0f172a;
+      font-size: clamp(9px, 1.17vw, 16px);
+      font-weight: 800;
+      line-height: 1.18;
+      letter-spacing: -0.01em;
+      box-shadow: none;
+    }
+
+    .overlay-input::placeholder {
+      color: rgba(100, 116, 139, 0.72);
+      font-weight: 700;
+    }
+
+    .overlay-input:focus {
+      outline: none;
+      border-bottom: 2px solid rgba(47, 145, 145, 0.72);
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .ov-customer { left: 9.6%; top: 20.25%; width: 81.0%; }
+    .ov-address { left: 9.6%; top: 24.45%; width: 81.0%; }
+    .ov-phone { left: 9.6%; top: 28.62%; width: 81.0%; }
+    .ov-product { left: 9.6%; top: 32.78%; width: 81.0%; }
+    .ov-payment-method { left: 9.6%; top: 36.95%; width: 31.8%; }
+    .ov-payment-amount { left: 43.0%; top: 36.95%; width: 47.6%; }
+
+    .ov-year { right: 38.1%; top: 89.26%; width: 8.8%; text-align: center; }
+    .ov-month { right: 22.25%; top: 89.26%; width: 5.8%; text-align: center; }
+    .ov-day { right: 7.95%; top: 89.26%; width: 5.8%; text-align: center; }
+
+    .ov-customer-sign-name { right: 16.2%; top: 92.78%; width: 12.9%; text-align: center; }
+    .ov-installer-sign-name { right: 16.2%; top: 95.95%; width: 12.9%; text-align: center; }
+
+    .overlay-sign-stamp {
+      position: absolute;
+      right: 3.55%;
+      width: 11.2%;
+      height: 2.95%;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    .overlay-sign-stamp.active { opacity: 1; }
+    .overlay-sign-stamp.customer { top: 92.58%; }
+    .overlay-sign-stamp.installer { top: 95.76%; }
+
+    .contract-sub-note {
+      margin-top: 8px;
+      color: #5f6b7a;
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .contract-paper {
+      padding: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.05);
+    }
+
+    .paper-head {
+      display: flex;
+      justify-content: center;
+      border-bottom: 2px solid #111827;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+
+    .paper-logo {
+      width: min(100%, 430px);
+      max-height: 118px;
+      display: block;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .paper-lines { display: grid; gap: 8px; }
+
+    .paper-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 5px;
+      min-height: 34px;
+    }
+
+    .paper-line-label {
+      min-width: 140px;
+      font-weight: 900;
+      font-size: 15px;
+      color: #0f172a;
+    }
+
+    .paper-line-input {
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      padding: 0 2px !important;
+      min-height: 24px;
+      box-shadow: none !important;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .paper-line-input:focus {
+      outline: none;
+      border-bottom: 2px solid rgba(47, 145, 145, 0.72) !important;
+    }
+
+    .paper-line-payment .payment-method { max-width: 180px; }
+    .paper-line-payment .payment-amount { flex: 1; }
+    .paper-line-input[readonly] { cursor: default; }
+
+    .pricing-builder {
+      margin-bottom: 12px;
+      padding: 10px 0 12px;
+      border-top: 1px dashed #cbd5e1;
+      border-bottom: 1px dashed #cbd5e1;
+    }
+
+    .pricing-builder-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .pricing-builder-head label {
+      margin-bottom: 0;
+    }
+
+    .pricing-builder-note {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .pricing-row-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .pricing-row {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) 90px 110px 110px auto;
+      gap: 8px;
+      align-items: end;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .pricing-row:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .pricing-field {
+      min-width: 0;
+    }
+
+    .pricing-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 800;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+
+    .pricing-value {
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #1f2937;
+      padding: 4px 2px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .pricing-builder-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .pricing-total {
+      font-size: 14px;
+      font-weight: 900;
+      color: #0f172a;
+      white-space: nowrap;
+    }
+
+    .paper-config-panel {
+      margin-top: 2px;
+      padding: 4px 0 8px;
+      background: transparent;
+    }
+
+    .paper-config-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px 14px;
+    }
+
+    .paper-config-panel label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #435469;
+      margin-bottom: 2px;
+    }
+
+    .paper-config-panel input:not([type="checkbox"]):not([type="hidden"]),
+    .paper-config-panel select,
+    .paper-config-panel textarea {
+      border: 0 !important;
+      border-bottom: 1px solid #1f2937 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      padding: 4px 2px !important;
+      min-height: 28px;
+      box-shadow: none !important;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .paper-config-panel textarea {
+      min-height: 34px;
+      resize: vertical;
+    }
+
+    .paper-config-panel input:focus,
+    .paper-config-panel select:focus,
+    .paper-config-panel textarea:focus {
+      border-bottom: 2px solid rgba(47, 145, 145, 0.72) !important;
+    }
+
+    .paper-config-panel .check-grid {
+      gap: 8px 14px;
+    }
+
+    .paper-config-panel .check-item {
+      border: 0;
+      border-bottom: 1px solid #d8dee8;
+      border-radius: 0;
+      background: transparent;
+      padding: 6px 0 7px;
+      min-height: 0;
+    }
+
+    .paper-terms {
+      margin-top: 14px;
+      border-top: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 12px 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .paper-policy-group + .paper-policy-group {
+      margin-top: 14px;
+    }
+
+    .paper-term-col h4 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: #111827;
+    }
+
+    .paper-policy-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .paper-policy-item {
+      display: grid;
+      grid-template-columns: 14px minmax(0, 1fr);
+      align-items: start;
+      column-gap: 6px;
+    }
+
+    .paper-policy-check {
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 900;
+      color: #111827;
+    }
+
+    .paper-policy-text {
+      margin: 0;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #1f2937;
+      font-weight: 700;
+      word-break: keep-all;
+    }
+
+    .paper-sign {
+      margin-top: 12px;
+      padding-top: 8px;
+      border-top: 1px solid #111827;
+    }
+
+    .paper-date-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .paper-date-input {
+      width: 72px;
+      border: 0 !important;
+      border-bottom: 1px solid #1f2937 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      padding: 0 2px !important;
+      text-align: center;
+      font-weight: 800;
+      box-shadow: none !important;
+    }
+
+    .paper-sign-row {
+      display: grid;
+      grid-template-columns: 74px 1fr auto 96px;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .paper-sign-label {
+      font-size: 17px;
+      font-weight: 900;
+      text-align: right;
+    }
+
+    .paper-sign-input {
+      border: 0 !important;
+      border-bottom: 1px solid #1f2937 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      padding: 0 2px !important;
+      min-height: 24px;
+      font-weight: 800;
+      box-shadow: none !important;
+    }
+
+    .paper-sign-mark {
+      font-weight: 900;
+      color: #111827;
+    }
+
+    .sign-stamp-inline {
+      width: 92px;
+      height: 32px;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      justify-self: start;
+    }
+
+    .sign-stamp-inline.active { opacity: 1; }
+
+    .sheet-write-wrap {
+      position: relative;
+      border: 1px solid #dbe2ec;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .sheet-write-image {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .sheet-write-layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    #signaturePad {
+      width: 100%;
+      height: 180px;
+      border: 1px dashed #cbd5e1;
+      border-radius: 10px;
+      touch-action: none;
+      background: #fff;
+    }
+
+    #installerSignaturePad {
+      width: 100%;
+      height: 180px;
+      border: 1px dashed #cbd5e1;
+      border-radius: 10px;
+      touch-action: none;
+      background: #fff;
+    }
+
+    .thumb-sign {
+      margin-top: 10px;
+      max-width: 220px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .hidden-view { display: none; }
+
+    @media (max-width: 920px) {
+      .stats, .grid { grid-template-columns: 1fr; }
+      .paper-config-grid { grid-template-columns: 1fr; }
+      .check-grid { grid-template-columns: 1fr 1fr; }
+      .paper-terms { grid-template-columns: 1fr; }
+      .paper-line { flex-direction: column; align-items: stretch; gap: 6px; }
+      .paper-line-label { min-width: 0; font-size: 14px; }
+      .paper-line-payment .payment-method { max-width: none; }
+      .pricing-row { grid-template-columns: 1fr 1fr; }
+      .pricing-builder-foot { flex-direction: column; align-items: flex-start; }
+      .paper-sign-row { grid-template-columns: 68px 1fr auto 86px; }
+      .toolbar input { max-width: none; }
+      .hero-name { font-size: 42px; }
+      .tab-btn { font-size: 24px; }
+    }
+
+    @media (max-width: 540px) {
+      .hero-name { font-size: 34px; }
+      .hero-arrow { font-size: 30px; }
+      .tab-btn { font-size: 18px; }
+      .icon-btn { font-size: 24px; width: 38px; height: 38px; }
+      .view-switch { gap: 12px; }
+      .pricing-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <span class="big-chip">큰글</span>
+      <div class="top-icons">
+        <button class="icon-btn" id="topBellBtn" type="button" aria-label="알림">🔔</button>
+        <button class="icon-btn" id="topSearchBtn" type="button" aria-label="검색">🔍</button>
+        <a class="icon-btn" href="./index.html" aria-label="처음 화면">☰</a>
+      </div>
+    </div>
+
+    <div class="hero-name"><span id="heroNameText">관리자 님</span><span class="hero-arrow">›</span></div>
+    <div class="hero-meta section-gap">
+      <span id="sessionChip" class="chip success">관리자 인증됨</span>
+      <span id="sourceChip" class="chip">데이터 소스: -</span>
+    </div>
+    <div class="quick-links section-gap">
+      <a class="link" href="./contracts.html">저장된 계약목록</a>
+      <a class="link" href="./contract.html">계약서 페이지</a>
+      <a class="link" href="./index.html">처음 화면</a>
+    </div>
+
+    <div id="apiStatus" class="notice section-gap">Google Sheets 연동 상태를 확인 중입니다.</div>
+
+    <section class="card section-gap mode-switch">
+      <div class="view-switch">
+        <button type="button" class="tab-btn active" data-admin-view-btn="summary">운영 요약</button>
+        <button type="button" class="tab-btn" data-admin-view-btn="installer">시공자 정보</button>
+        <button type="button" class="tab-btn" data-admin-view-btn="contract">계약 등록/수정</button>
+        <button type="button" class="tab-btn" data-admin-view-btn="as">AS 신청 내역</button>
+      </div>
+    </section>
+
+    <section class="card section-gap" id="installerCard">
+      <h2>시공자 정보</h2>
+      <div class="grid">
+        <div>
+          <label>시공자명</label>
+          <input id="installerNameInput" placeholder="시공자명을 입력하세요." />
+        </div>
+        <div>
+          <label>연락처</label>
+          <input id="installerPhoneInput" inputmode="numeric" placeholder="연락처를 입력하세요." />
+        </div>
+        <div class="full">
+          <label>기본 주소</label>
+          <input id="installerAddressInput" placeholder="예: 청주시 흥덕구 ..." />
+        </div>
+        <div class="full">
+          <div class="actions" style="margin-top:0;">
+            <button class="btn secondary" type="button" id="saveInstallerProfileBtn">기본정보 저장</button>
+            <div id="installerProfileMeta" class="profile-meta">시공자 기본정보를 저장하면 이후 계약서에 자동 반영됩니다.</div>
+          </div>
+        </div>
+        <div class="full">
+          <label>시공자 전자서명</label>
+          <div class="sign-wrap installer-panel">
+            <div class="actions" style="margin-top:0;">
+              <button class="btn secondary" type="button" id="openInstallerSignatureBtn">서명 작성</button>
+            </div>
+            <div id="installerSignatureEditor" class="signature-editor" hidden>
+              <canvas id="installerSignaturePad"></canvas>
+              <div class="actions" style="margin-top:10px;">
+                <button class="btn primary" type="button" id="saveInstallerSignatureBtn">서명 저장</button>
+                <button class="btn outline" type="button" id="clearInstallerSignatureBtn">작성 내용 지우기</button>
+              </div>
+              <div class="muted">실수 입력을 막기 위해 `서명 작성`을 눌렀을 때만 캔버스가 열립니다. 작성 후 `서명 저장`을 눌러야 계약서에 들어갑니다.</div>
+            </div>
+            <div class="signature-preview-box">
+              <div class="profile-meta">저장된 서명 미리보기</div>
+              <div id="installerSignatureEmpty" class="signature-preview-empty">저장된 시공자 서명이 없습니다.</div>
+              <img id="installerSignaturePreview" class="thumb-sign" alt="시공자서명" style="display:none;" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card section-gap" id="adminStatsCard">
+      <h2>운영 요약</h2>
+      <div class="stats">
+        <div class="stat"><div class="k">전체 계약</div><div class="v" id="statTotal">0</div></div>
+        <div class="stat"><div class="k">오늘 등록</div><div class="v" id="statToday">0</div></div>
+        <div class="stat"><div class="k">총 AS 접수</div><div class="v" id="statFiltered">0</div></div>
+      </div>
+      <div class="toolbar" style="margin-top:12px;">
+        <input id="summaryContractSearch" placeholder="내 계약 검색 (검색 시 과거 내역 포함)" />
+        <button class="btn secondary" type="button" id="summaryReloadBtn">계약내역 불러오기</button>
+      </div>
+      <div class="list-meta" id="summaryContractMeta">-</div>
+      <div id="summaryContractList" class="item-list"></div>
+    </section>
+
+    <section class="card section-gap" id="adminContractCard">
+      <h2 id="adminContractTitle">신규 계약 등록</h2>
+      <div id="contractEditNotice" class="notice contract-mode-notice" hidden></div>
+      <form id="adminContractForm">
+        <div class="grid">
+          <div class="full">
+            <label>고객 확인용 계약서</label>
+            <div class="contract-doc contract-paper">
+              <div class="paper-head">
+                <img class="paper-logo" src="./시공계약아이콘.png" alt="아이콩콩매트" />
+              </div>
+
+              <div class="paper-lines">
+                <div class="paper-line">
+                  <span class="paper-line-label">고객명</span>
+                  <input class="paper-line-input" id="ovCustomerName" name="customerName" required placeholder="고객명 입력" />
+                </div>
+                <div class="paper-line">
+                  <span class="paper-line-label">주소</span>
+                  <input class="paper-line-input" id="ovAddress" name="address" required placeholder="주소 입력" />
+                </div>
+                <div class="paper-line">
+                  <span class="paper-line-label">연락처</span>
+                  <input class="paper-line-input" id="ovPhone" name="phone" required placeholder="연락처 입력" />
+                </div>
+                <div class="paper-line">
+                  <span class="paper-line-label">품명/사용수량</span>
+                  <input class="paper-line-input" id="ovProduct" name="product" required placeholder="아래 매트 구성에서 자동 입력" readonly />
+                  <input type="hidden" id="productItemsInput" name="productItems" />
+                </div>
+                <div class="paper-line paper-line-payment">
+                  <span class="paper-line-label">결제방식 & 결제금액</span>
+                  <input class="paper-line-input payment-method" id="paymentMethodInput" name="paymentMethod" list="paymentMethodOptions" placeholder="예: 카드" />
+                  <input class="paper-line-input payment-amount" id="totalPriceInput" name="totalPrice" required inputmode="numeric" placeholder="매트 구성 합계 자동 계산" readonly />
+                  <input type="hidden" id="paymentSummaryInput" name="paymentSummary" />
+                  <datalist id="paymentMethodOptions">
+                    <option value="카드"></option>
+                    <option value="계좌이체"></option>
+                    <option value="현금"></option>
+                    <option value="복합결제"></option>
+                    <option value="기타"></option>
+                  </datalist>
+                </div>
+              </div>
+
+              <div class="paper-config-panel">
+                <div class="pricing-builder">
+                  <div class="pricing-builder-head">
+                    <label>매트 구성 및 결제금액 산출</label>
+                    <button class="btn tiny outline" type="button" id="addProductItemBtn">매트 추가</button>
+                  </div>
+                  <div id="productItemList" class="pricing-row-list"></div>
+                  <div class="pricing-builder-foot">
+                    <div class="pricing-builder-note" id="productCalcSummaryText">매트 종류와 수량을 선택하면 품명과 결제금액이 자동 계산됩니다.</div>
+                    <div class="pricing-total">합계 <span id="productCalcTotalText">0원</span></div>
+                  </div>
+                </div>
+                <div class="paper-config-grid">
+                  <div>
+                    <label>색상</label>
+                    <select name="color" required>
+                      <option value="">색상 선택</option>
+                      <option value="샌드베이지">샌드베이지</option>
+                      <option value="샌드그레이">샌드그레이</option>
+                      <option value="화이트마블">화이트마블</option>
+                      <option value="스킨퓨어">스킨퓨어</option>
+                    </select>
+                  </div>
+                  <div><label>시공일자</label><input id="installDateInput" name="installDate" type="date" required /></div>
+                  <div>
+                    <label>시공 차수</label>
+                    <select name="installRound">
+                      <option value="1차 완료">1차 완료</option>
+                      <option value="1차 후 2차 예정">1차 후 2차 예정</option>
+                      <option value="2차 완료">2차 완료</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="margin-top:10px;">
+                  <label>할인 유형</label>
+                  <div class="check-grid">
+                    <label class="check-item"><input type="checkbox" name="discountType" value="공동구매" />공동구매</label>
+                    <label class="check-item"><input type="checkbox" name="discountType" value="지인" />지인</label>
+                    <label class="check-item"><input type="checkbox" name="discountType" value="베페할인" />베페할인</label>
+                    <label class="check-item"><input type="checkbox" name="discountType" value="기타" />기타</label>
+                  </div>
+                </div>
+                <div id="discountEtcWrap" style="margin-top:10px;" hidden>
+                  <label for="discountEtcInput">기타 할인 상세</label>
+                  <input id="discountEtcInput" name="discountEtc" placeholder="예: 소개 할인 3만원" disabled />
+                </div>
+                <div style="margin-top:10px;"><label>시공 특이사항</label><textarea name="installNote" placeholder="예: 냉장고 앞 미시공, 2차 마감 예정"></textarea></div>
+              </div>
+
+              <div class="paper-terms">
+                <div class="paper-term-col">
+                  <div class="paper-policy-group">
+                    <h4>교환 / 반품안내</h4>
+                    <div class="paper-policy-list">
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">아이콩콩매트 고객센터(또는 해당 구매처 고객센터) 접수 후, 교환 및 반품이 진행됩니다. 타 택배 이용 시 발생되는 추가금 및 분실 건은 구매자 부담입니다.</p>
+                      </div>
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">교환 및 반품은 제품을 수령하신 후 7일 이내 교환/반품 의사를 고객센터로 접수해주셔야 합니다.</p>
+                      </div>
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">제품 하자 교환은 3개월 안에 가능하시며 고객 부주의로 인한 교환건은 제품구매를 하셔야 합니다.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="paper-policy-group">
+                    <h4>교환 / 반품이 불가한 경우</h4>
+                    <div class="paper-policy-list">
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">제품 수령 후 7일 이내 교환/반품 의사를 전달하지 않은 경우(전달방법: 해당 구매처 고객센터)</p>
+                      </div>
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">시공 제품은 단순 변심으로 인한 교환/반품이 절대 불가능합니다.</p>
+                      </div>
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">할인제품/행사제품/사전에 교환 및 반품 불가가 고지된 제품</p>
+                      </div>
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">교환 및 반품 시 해당 제품을 훼손하거나 사용하지 않았어야 하며 최초 구매(혹은 수령)했을 당시와 동일한 상태를 유지해야 합니다.</p>
+                      </div>
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">구매자의 부주의로 인하여 제품이 손상되었거나 사용으로 인한 오염 등 제품의 가치가 하락한 경우, 수령일로부터 7일 이내라도 반품이 절대 불가합니다.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="paper-policy-group">
+                    <h4>시공 전후 사진촬영</h4>
+                    <div class="paper-policy-list">
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">시공 전후 사진촬영을 통해 시공 결과물에 대한 정보를 아이콩콩 본사에서 보유하게 되며, 이를 통해 추후 A/S 시 보다 원활한 정보확인이 이루어집니다. 해당 사진은 아이콩콩 홈페이지 시공사례 및 광고자료로 활용될 수 있으며 특정인을 알아볼 수 있는 경우 모자이크 처리를 통해 고객안심을 보장합니다.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="paper-term-col">
+                  <div class="paper-policy-group">
+                    <h4>A/S 신청 안내</h4>
+                    <div class="paper-policy-list">
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">A/S가 필요한 부분의 사진과 매트 앞뒷면을 찍어서 아이콩콩매트 카카오채널 또는 담당 시공기사에게 접수해 주세요. 계약자 성명, 번호, 주소, 시공일자, 제품종류를 꼭 적어주세요.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="paper-policy-group">
+                    <h4>A/S 및 배송비 안내</h4>
+                    <div class="paper-policy-list">
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">고객 부주의로 인한 A/S 발생은 5만원의 출장비가 청구됩니다. 교환/반품 시 왕복 배송비 14,000원은 계좌 입금이며 A/S, 배송비 모두 계좌이체를 이용하셔야 합니다. 배송비를 제품과 동봉 시 분실 위험이 있으므로 꼭 계좌 입금 부탁드립니다. 제품 사이즈 및 택배 박스 수량(박스 초과)에 따라 배송비 금액이 추가될 수 있습니다.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="paper-policy-group">
+                    <h4>교환/반품배송비/시공비 입금 계좌</h4>
+                    <div class="paper-policy-list">
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">배송비는 제품과 동봉 시 분실 위험이 있으므로 꼭 계좌 입금을 부탁드립니다.</p>
+                      </div>
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">입금계좌: 110-615-077781 (조성운, 아이콩콩)</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="paper-policy-group">
+                    <h4>아이콩콩매트 고객센터</h4>
+                    <div class="paper-policy-list">
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">유선상담: 1670-2659</p>
+                      </div>
+                      <div class="paper-policy-item">
+                        <span class="paper-policy-check">☑</span>
+                        <p class="paper-policy-text">운영시간: 평일 AM09:00~PM18:00 (주말/공휴일 휴무)</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="paper-sign">
+                <div class="paper-date-row">
+                  <input class="paper-date-input" id="docYearInput" name="docYear" placeholder="2026" />
+                  <span>년</span>
+                  <input class="paper-date-input" id="docMonthInput" name="docMonth" placeholder="03" />
+                  <span>월</span>
+                  <input class="paper-date-input" id="docDayInput" name="docDay" placeholder="08" />
+                  <span>일</span>
+                </div>
+                <div class="paper-sign-row">
+                  <span class="paper-sign-label">고객명:</span>
+                  <input class="paper-sign-input" id="customerSignNameInput" name="customerSignName" placeholder="고객 성명" />
+                  <span class="paper-sign-mark">(인)</span>
+                  <img id="customerSignOverlay" class="sign-stamp-inline" alt="고객 서명" />
+                </div>
+                <div class="paper-sign-row">
+                  <span class="paper-sign-label">시공자:</span>
+                  <input class="paper-sign-input" id="installerSignNameInput" name="installerSignName" readonly placeholder="시공자 성명" />
+                  <span class="paper-sign-mark">(인)</span>
+                  <img id="installerSignOverlay" class="sign-stamp-inline" alt="시공자 서명" />
+                </div>
+              </div>
+            </div>
+            <div class="contract-sub-note">고객 확인 안내문은 이미지가 아니라 실제 텍스트로 구성되어 인쇄 시에도 선명하게 출력됩니다.</div>
+          </div>
+          <div class="full">
+            <label>고객 전자서명 (터치/마우스)</label>
+            <div class="sign-wrap">
+              <canvas id="signaturePad"></canvas>
+              <div class="actions" style="margin-top:10px;">
+                <button class="btn outline" type="button" id="clearSignatureBtn">서명 지우기</button>
+              </div>
+              <input type="hidden" name="signatureImage" id="signatureImage" required />
+              <div class="muted">휴대폰에서는 손가락으로 직접 서명해 주세요.</div>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <a class="btn secondary" href="./contracts.html">저장된 계약목록 보기</a>
+          <button class="btn outline" type="button" id="cancelContractEditBtn" hidden>수정 취소</button>
+          <button class="btn primary" type="submit" id="contractSubmitBtn">계약 저장</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card section-gap hidden-view" id="adminAsCard">
+      <h2>AS 신청 내역</h2>
+      <div class="notice">내가 시공한 고객이 접수한 AS만 목록으로 표시됩니다. 카드를 누르면 상세 페이지에서 처리 상태와 메모를 저장할 수 있습니다.</div>
+      <div class="toolbar">
+        <input id="asSearchInput" placeholder="고객명, 연락처, 접수번호, 내용 검색" />
+        <select id="asStatusFilter">
+          <option value="all">상태 전체</option>
+          <option value="접수중">접수중</option>
+          <option value="처리중">처리중</option>
+          <option value="처리완료">처리완료</option>
+        </select>
+        <button class="btn secondary" type="button" id="asReloadBtn">고객 신청내역 불러오기</button>
+      </div>
+      <div class="list-meta" id="asMeta">-</div>
+      <div id="adminAsList" class="item-list"></div>
+    </section>
+
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'aikongkong_contract_as_v2';
+    const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
+    const SHEETS_API_URL_KEY = 'aikongkong_sheets_api_url';
+    const INSTALLER_PROFILE_KEY = 'aikongkong_installer_profile_v1';
+    const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec';
+    const REMOTE_FETCH_TIMEOUT_MS = 20000;
+    const RECENT_CONTRACT_LIMIT = 10;
+    const MAT_PRODUCT_CATALOG = [
+      { name: '프리미엄600', unitPrice: 22000, aliases: ['프리미엄 600'] },
+      { name: '스킨퓨어600', unitPrice: 25000, aliases: ['스킨퓨어 600'] },
+      { name: '프리미엄1200', unitPrice: 108000, aliases: ['프리미엄 1200'] },
+      { name: '스킨퓨어1200', unitPrice: 118000, aliases: ['스킨퓨어 1200'] },
+      { name: '[리퍼브]프리미엄1200', unitPrice: 98000, aliases: ['[리퍼브] 프리미엄1200', '[리퍼브]프리미엄 1200', '[리퍼브] 프리미엄 1200'] },
+      { name: '[리퍼브]스킨퓨어1200', unitPrice: 107000, aliases: ['[리퍼브]스킨퓨어', '[리퍼브] 스킨퓨어', '[리퍼브]스킨퓨어 1200', '[리퍼브] 스킨퓨어1200', '[리퍼브] 스킨퓨어 1200'] }
+    ];
+
+    const seedData = {
+      contracts: [{
+        id: 'sample_contract_1',
+        contractNo: 'C20260308001',
+        customerName: '홍길동',
+        phone: '01012345678',
+        address: '청주시 흥덕구 예시로 101',
+        product: '스킨퓨어1200 1장',
+        color: '샌드베이지',
+        totalPrice: '118000',
+        installDate: '2026-03-20',
+        installRound: '1차 후 2차 예정',
+        discountTypes: '공동구매, 베페할인',
+        discountEtc: '',
+        installNote: '냉장고 앞 미시공, 2차 마감 예정',
+        signatureImage: '',
+        installerName: '정지오',
+        installerPhone: '01085259253',
+        installerSignatureImage: '',
+        createdAt: new Date().toISOString()
+      }],
+      asRequests: []
+    };
+
+    const state = {
+      adminLoggedIn: false,
+      contracts: [],
+      asRequests: [],
+      source: 'local',
+      currentAdminName: '',
+      currentAdminPhone: '',
+      filterKeyword: '',
+      asFilterKeyword: '',
+      asFilterStatus: 'all',
+      installerProfile: null,
+      adminView: 'summary',
+      editingContractId: '',
+      productItems: [],
+      legacyProductSummary: '',
+      legacyTotalPrice: ''
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => Array.from(document.querySelectorAll(s));
+    const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
+
+    function todayString() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function normalizeText(v) {
+      return String(v || '').trim().toLowerCase();
+    }
+
+    function isSupportedAdminView(view) {
+      return ['summary', 'installer', 'contract', 'as'].includes(String(view || '').trim());
+    }
+
+    function getRequestedAdminView() {
+      const view = new URLSearchParams(location.search).get('view');
+      return isSupportedAdminView(view) ? view : '';
+    }
+
+    function getRequestedEditContractId() {
+      return String(new URLSearchParams(location.search).get('edit') || '').trim();
+    }
+
+    function syncAdminLocationState() {
+      const url = new URL(location.href);
+      if (state.adminView && state.adminView !== 'summary') url.searchParams.set('view', state.adminView);
+      else url.searchParams.delete('view');
+
+      if (state.editingContractId) url.searchParams.set('edit', state.editingContractId);
+      else url.searchParams.delete('edit');
+
+      history.replaceState(null, '', `${url.pathname}${url.search}`);
+    }
+
+    function getContractSortTime(item) {
+      const candidates = [item?.createdAt, item?.updatedAt, item?.installDate];
+      for (const value of candidates) {
+        const d = new Date(value);
+        const t = d.getTime();
+        if (!Number.isNaN(t)) return t;
+      }
+      return 0;
+    }
+
+    function getCurrentInstallerName() {
+      const fromProfile = String(state.installerProfile?.name || '').trim();
+      if (fromProfile) return fromProfile;
+      return String(state.currentAdminName || '').trim();
+    }
+
+    function getCurrentInstallerPhone() {
+      const fromProfile = toDigits(state.installerProfile?.phone || '');
+      if (fromProfile) return fromProfile;
+      return toDigits(state.currentAdminPhone || '');
+    }
+
+    function getCurrentInstallerAddress() {
+      return String(state.installerProfile?.address || '').trim();
+    }
+
+    function belongsToCurrentInstaller(item) {
+      const installerName = normalizeText(getCurrentInstallerName());
+      const installerPhone = getCurrentInstallerPhone();
+      if (!installerName && !installerPhone) return false;
+
+      const itemInstallerPhone = toDigits(item?.installerPhone);
+      const itemInstallerName = normalizeText(item?.installerName);
+
+      if (installerPhone) {
+        if (itemInstallerPhone) return itemInstallerPhone === installerPhone;
+        if (installerName) return itemInstallerName === installerName;
+        return false;
+      }
+
+      return installerName && itemInstallerName === installerName;
+    }
+
+    function getMyInstallerContractsSorted() {
+      return [...state.contracts]
+        .filter((item) => belongsToCurrentInstaller(item))
+        .sort((a, b) => getContractSortTime(b) - getContractSortTime(a));
+    }
+
+    function findContractForAsRequest(item) {
+      const contractId = String(item?.contractId || '').trim();
+      if (contractId) {
+        const byId = findContractById(contractId);
+        if (byId) return byId;
+      }
+
+      const contractNo = String(item?.contractNo || '').trim();
+      if (contractNo) {
+        const byContractNo = state.contracts.find((contract) => String(contract?.contractNo || '').trim() === contractNo);
+        if (byContractNo) return byContractNo;
+      }
+
+      const phone = toDigits(item?.phone);
+      const customerName = normalizeText(item?.customerName);
+      if (!phone && !customerName) return null;
+
+      return state.contracts.find((contract) => {
+        const samePhone = phone && toDigits(contract?.phone) === phone;
+        const sameName = customerName && normalizeText(contract?.customerName) === customerName;
+        if (phone && customerName) return samePhone && sameName;
+        return samePhone || sameName;
+      }) || null;
+    }
+
+    function getMyInstallerAsRequests() {
+      return [...state.asRequests]
+        .filter((item) => {
+          if (belongsToCurrentInstaller(item)) return true;
+          const linkedContract = findContractForAsRequest(item);
+          return linkedContract ? belongsToCurrentInstaller(linkedContract) : false;
+        })
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    }
+
+    function getAsRequestType(item) {
+      return String(item?.requestType || item?.asType || '').trim();
+    }
+
+    function normalizeAsRequestItem(item, idx) {
+      const normalized = { ...(item || {}) };
+      const requestType = getAsRequestType(normalized);
+      if (requestType) normalized.requestType = requestType;
+      if (!normalized.createdAt && normalized.requestDate) normalized.createdAt = normalized.requestDate;
+      if (!normalized.status) normalized.status = '접수중';
+      if (!normalized.id) {
+        normalized.id = String(normalized.asNo || '').trim() || `as_legacy_${idx + 1}`;
+      }
+      return normalized;
+    }
+
+    function normalizeAsRequests(items) {
+      return (Array.isArray(items) ? items : []).map((item, idx) => normalizeAsRequestItem(item, idx));
+    }
+
+    function normalizeMoneyValue(value) {
+      return String(value || '').replace(/[^0-9]/g, '');
+    }
+
+    function formatMoneyInputValue(value) {
+      const digits = normalizeMoneyValue(value);
+      if (!digits) return '';
+      return Number(digits).toLocaleString();
+    }
+
+    function formatMoneyText(value) {
+      const formatted = formatMoneyInputValue(value);
+      if (!formatted) return '';
+      return `${formatted}원`;
+    }
+
+    function buildPaymentSummary(paymentMethod, totalPrice) {
+      return [String(paymentMethod || '').trim(), formatMoneyText(totalPrice)].filter(Boolean).join(' / ');
+    }
+
+    function normalizeDateInputValue(value, fallback = '') {
+      const raw = String(value || '').trim();
+      if (!raw) return fallback;
+
+      const matched = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (matched) return matched[1];
+
+      const parsed = new Date(raw);
+      if (Number.isNaN(parsed.getTime())) return fallback;
+
+      const y = parsed.getFullYear();
+      const m = String(parsed.getMonth() + 1).padStart(2, '0');
+      const d = String(parsed.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function makeProductItemId() {
+      return `product_item_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function normalizeCatalogKey(value) {
+      return String(value || '').replace(/\s+/g, '').trim().toLowerCase();
+    }
+
+    function createProductItem(type = '', quantity = 0) {
+      return {
+        id: makeProductItemId(),
+        type: String(type || '').trim(),
+        quantity: Math.max(0, Number.parseInt(quantity, 10) || 0)
+      };
+    }
+
+    function normalizeProductItems(items) {
+      return (Array.isArray(items) ? items : []).map((item) => ({
+        id: String(item?.id || '').trim() || makeProductItemId(),
+        type: String(item?.type || '').trim(),
+        quantity: Math.max(0, Number.parseInt(item?.quantity, 10) || 0)
+      }));
+    }
+
+    function findMatCatalogItem(type) {
+      const key = normalizeCatalogKey(type);
+      if (!key) return null;
+
+      return MAT_PRODUCT_CATALOG.find((item) => {
+        const candidates = [item.name].concat(Array.isArray(item.aliases) ? item.aliases : []);
+        return candidates.some((candidate) => normalizeCatalogKey(candidate) === key);
+      }) || null;
+    }
+
+    function getMatUnitPrice(type) {
+      return findMatCatalogItem(type)?.unitPrice || 0;
+    }
+
+    function getValidProductItems(items = state.productItems) {
+      return normalizeProductItems(items)
+        .map((item) => {
+          const catalog = findMatCatalogItem(item.type);
+          if (!catalog || item.quantity <= 0) return null;
+          return {
+            id: item.id,
+            type: catalog.name,
+            quantity: item.quantity,
+            unitPrice: catalog.unitPrice
+          };
+        })
+        .filter(Boolean);
+    }
+
+    function buildProductSummary(items = state.productItems) {
+      const validItems = getValidProductItems(items);
+      return validItems.map((item) => `${item.type} ${item.quantity}장`).join(', ');
+    }
+
+    function calculateProductTotal(items = state.productItems) {
+      return getValidProductItems(items).reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+    }
+
+    function serializeProductItems(items = state.productItems) {
+      const validItems = getValidProductItems(items);
+      if (!validItems.length) return '';
+      return JSON.stringify(validItems.map((item) => ({
+        type: item.type,
+        quantity: item.quantity
+      })));
+    }
+
+    function parseStoredProductItems(value) {
+      try {
+        const parsed = JSON.parse(String(value || ''));
+        return normalizeProductItems(parsed);
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function inferProductItemsFromLegacyProduct(product, totalPrice) {
+      const raw = String(product || '').trim();
+      if (!raw) return [];
+
+      const parts = raw.split(/\s*,\s*|\s*\/\s*/).map((item) => item.trim()).filter(Boolean);
+      const parsedItems = parts.map((part) => {
+        const matched = part.match(/^(.*?)(\d+)\s*장$/);
+        if (!matched) return null;
+        const catalog = findMatCatalogItem(matched[1]);
+        if (!catalog) return null;
+        return createProductItem(catalog.name, matched[2]);
+      }).filter(Boolean);
+
+      if (parsedItems.length) return parsedItems;
+
+      const matchedCatalog = MAT_PRODUCT_CATALOG.find((item) => {
+        const candidates = [item.name].concat(Array.isArray(item.aliases) ? item.aliases : []);
+        return candidates.some((candidate) => normalizeCatalogKey(raw).includes(normalizeCatalogKey(candidate)));
+      });
+
+      if (!matchedCatalog) return [];
+
+      const total = Number.parseInt(normalizeMoneyValue(totalPrice), 10) || 0;
+      if (total > 0 && matchedCatalog.unitPrice > 0 && total % matchedCatalog.unitPrice === 0) {
+        return [createProductItem(matchedCatalog.name, total / matchedCatalog.unitPrice)];
+      }
+
+      return [createProductItem(matchedCatalog.name, 1)];
+    }
+
+    function getProductItemsFromContract(contract) {
+      const storedItems = parseStoredProductItems(contract?.productItems);
+      if (storedItems.length) return storedItems;
+      return inferProductItemsFromLegacyProduct(contract?.product, contract?.totalPrice);
+    }
+
+    function renderProductItemRows() {
+      const list = $('#productItemList');
+      if (!list) return;
+
+      if (!state.productItems.length) {
+        state.productItems = [createProductItem()];
+      }
+
+      list.innerHTML = state.productItems.map((item) => {
+        const unitPrice = getMatUnitPrice(item.type);
+        const subtotal = unitPrice * item.quantity;
+        const options = ['<option value="">매트 종류 선택</option>']
+          .concat(MAT_PRODUCT_CATALOG.map((catalog) => {
+            const selected = catalog.name === item.type ? ' selected' : '';
+            return `<option value="${escapeHtml(catalog.name)}"${selected}>${escapeHtml(catalog.name)} · ${escapeHtml(formatMoneyText(catalog.unitPrice))}</option>`;
+          }))
+          .join('');
+
+        return `
+          <div class="pricing-row" data-product-item-row="${escapeHtml(item.id)}">
+            <div class="pricing-field">
+              <label>매트 종류</label>
+              <select data-product-item-type>
+                ${options}
+              </select>
+            </div>
+            <div class="pricing-field">
+              <label>수량(장)</label>
+              <input type="number" min="0" step="1" value="${item.quantity || ''}" data-product-item-qty placeholder="0" />
+            </div>
+            <div class="pricing-field">
+              <label>장당 금액</label>
+              <div class="pricing-value" data-product-item-unit>${escapeHtml(formatMoneyText(unitPrice) || '-')}</div>
+            </div>
+            <div class="pricing-field">
+              <label>소계</label>
+              <div class="pricing-value" data-product-item-subtotal>${escapeHtml(formatMoneyText(subtotal) || '-')}</div>
+            </div>
+            <button class="btn tiny outline" type="button" data-remove-product-item ${state.productItems.length <= 1 ? 'disabled' : ''}>삭제</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function syncProductPricingFields() {
+      const validItems = getValidProductItems();
+      const productSummary = validItems.length ? buildProductSummary(validItems) : state.legacyProductSummary;
+      const totalPrice = validItems.length ? String(calculateProductTotal(validItems)) : String(state.legacyTotalPrice || '');
+
+      const productInput = $('#ovProduct');
+      const productItemsInput = $('#productItemsInput');
+      const totalPriceInput = $('#totalPriceInput');
+      const totalText = $('#productCalcTotalText');
+      const summaryText = $('#productCalcSummaryText');
+
+      if (productInput) productInput.value = productSummary;
+      if (productItemsInput) productItemsInput.value = validItems.length ? serializeProductItems(validItems) : '';
+      if (totalPriceInput) totalPriceInput.value = formatMoneyInputValue(totalPrice);
+      if (totalText) totalText.textContent = formatMoneyText(totalPrice) || '0원';
+      if (summaryText) {
+        summaryText.textContent = productSummary || '매트 종류와 수량을 선택하면 품명과 결제금액이 자동 계산됩니다.';
+      }
+
+      syncContractOverlayFields();
+    }
+
+    function setProductItems(items, options = {}) {
+      state.productItems = normalizeProductItems(items);
+      state.legacyProductSummary = String(options.legacyProductSummary || '').trim();
+      state.legacyTotalPrice = normalizeMoneyValue(options.legacyTotalPrice);
+      if (!state.productItems.length) state.productItems = [createProductItem()];
+      renderProductItemRows();
+      syncProductPricingFields();
+    }
+
+    function hasConfiguredProductPricing() {
+      if (getValidProductItems().length) return true;
+      return Boolean(String(state.legacyProductSummary || '').trim() && normalizeMoneyValue(state.legacyTotalPrice));
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function makePreviewText(value, maxLength = 96) {
+      const text = String(value || '').trim().replace(/\s+/g, ' ');
+      if (!text) return '-';
+      if (text.length <= maxLength) return text;
+      return `${text.slice(0, maxLength).trim()}...`;
+    }
+
+    function showStatus(text, type = '') {
+      const el = $('#apiStatus');
+      el.className = `notice ${type}`.trim();
+      el.textContent = text;
+    }
+
+    function updateSourceChip() {
+      const el = $('#sourceChip');
+      if (state.source === 'sheets') {
+        el.textContent = '데이터 소스: Google Sheets';
+        el.className = 'chip success';
+        return;
+      }
+
+      if (state.source === 'checking') {
+        el.textContent = '데이터 소스: 확인 중';
+        el.className = 'chip';
+        return;
+      }
+
+      el.textContent = '데이터 소스: Local Backup';
+      el.className = 'chip';
+    }
+
+    function getSheetsApiUrl() {
+      const fromLocal = String(localStorage.getItem(SHEETS_API_URL_KEY) || '').trim();
+      return fromLocal || DEFAULT_SHEETS_API_URL;
+    }
+
+    async function fetchWithTimeout(url, options = {}, timeoutMs = REMOTE_FETCH_TIMEOUT_MS) {
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      let timeoutId = 0;
+      const timeoutMessage = `연동 대기시간 초과 (${Math.ceil(timeoutMs / 1000)}초)`;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          if (controller) controller.abort();
+          reject(new Error(timeoutMessage));
+        }, timeoutMs);
+      });
+
+      try {
+        return await Promise.race([
+          fetch(url, {
+            ...options,
+            ...(controller ? { signal: controller.signal } : {})
+          }).catch((err) => {
+            if (controller && err?.name === 'AbortError') {
+              throw new Error(timeoutMessage);
+            }
+            throw err;
+          }),
+          timeoutPromise
+        ]);
+      } finally {
+        if (timeoutId) window.clearTimeout(timeoutId);
+      }
+    }
+
+    function saveLocal() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ contracts: state.contracts, asRequests: state.asRequests }));
+    }
+
+    function loadLocal() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        state.contracts = [...seedData.contracts];
+        state.asRequests = normalizeAsRequests([...seedData.asRequests]);
+        saveLocal();
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      state.contracts = parsed.contracts || [];
+      state.asRequests = normalizeAsRequests(parsed.asRequests || []);
+    }
+
+    function hasStoredLocalData() {
+      return !!String(localStorage.getItem(STORAGE_KEY) || '').trim();
+    }
+
+    function getLocalContractsBackup() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed.contracts) ? parsed.contracts : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    const CONTRACT_FALLBACK_KEYS = [
+      'contractNo',
+      'customerName',
+      'phone',
+      'address',
+      'product',
+      'productItems',
+      'color',
+      'totalPrice',
+      'paymentMethod',
+      'paymentSummary',
+      'installDate',
+      'docYear',
+      'docMonth',
+      'docDay',
+      'installRound',
+      'discountTypes',
+      'discountEtc',
+      'installNote',
+      'customerSignName',
+      'installerSignName',
+      'signatureImage',
+      'installerName',
+      'installerPhone',
+      'installerAddress',
+      'installerSignatureImage',
+      'createdAt',
+      'updatedAt'
+    ];
+
+    function hasContractValue(value) {
+      if (value == null) return false;
+      if (typeof value === 'string') return value.trim() !== '';
+      return true;
+    }
+
+    function mergeContractRecordWithLocal(remoteItem, localItem) {
+      const merged = { ...(remoteItem || {}) };
+      if (!localItem) return merged;
+
+      CONTRACT_FALLBACK_KEYS.forEach((key) => {
+        if (!hasContractValue(merged[key]) && hasContractValue(localItem[key])) {
+          merged[key] = localItem[key];
+        }
+      });
+
+      ['phone', 'installerPhone'].forEach((key) => {
+        const mergedDigits = toDigits(merged[key]);
+        const localDigits = toDigits(localItem[key]);
+        if (localDigits.length > mergedDigits.length) {
+          merged[key] = localItem[key];
+        }
+      });
+
+      return merged;
+    }
+
+    function mergeContractFieldsFromLocal(remoteContracts) {
+      const localMap = new Map(
+        getLocalContractsBackup()
+          .filter((item) => item && item.id)
+          .map((item) => [String(item.id), item])
+      );
+
+      const mergedList = (remoteContracts || []).map((item) => {
+        const local = localMap.get(String(item.id || ''));
+        const merged = mergeContractRecordWithLocal(item, local);
+        localMap.delete(String(item.id || ''));
+        return merged;
+      });
+
+      localMap.forEach((item) => mergedList.push(item));
+      return mergedList;
+    }
+
+    async function loadRemote() {
+      const apiUrl = getSheetsApiUrl();
+      if (!apiUrl) throw new Error('구글시트 API URL이 비어 있습니다.');
+
+      const sep = apiUrl.includes('?') ? '&' : '?';
+      const res = await fetchWithTimeout(`${apiUrl}${sep}action=load&t=${Date.now()}`, {
+        method: 'GET',
+        cache: 'no-store'
+      });
+      if (!res.ok) throw new Error(`연동 서버 응답 오류 (${res.status})`);
+
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || '데이터 로드 실패');
+
+      const remoteContracts = Array.isArray(data.contracts) ? data.contracts : [];
+      state.contracts = mergeContractFieldsFromLocal(remoteContracts);
+      state.asRequests = normalizeAsRequests(Array.isArray(data.asRequests) ? data.asRequests : []);
+      state.source = 'sheets';
+      saveLocal();
+      return data;
+    }
+
+    async function postRemote(action, payload) {
+      const apiUrl = getSheetsApiUrl();
+      if (!apiUrl) throw new Error('구글시트 API URL이 비어 있습니다.');
+
+      const res = await fetchWithTimeout(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action, ...payload })
+      });
+
+      if (!res.ok) throw new Error(`연동 서버 응답 오류 (${res.status})`);
+
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || '데이터 저장 실패');
+      return data;
+    }
+
+    async function loadData() {
+      const apiUrl = getSheetsApiUrl();
+      if (apiUrl) {
+        try {
+          await loadRemote();
+          showStatus('Google Sheets 연결됨: 원격 데이터를 사용 중입니다.', 'success');
+          updateSourceChip();
+          return;
+        } catch (err) {
+          loadLocal();
+          state.source = 'local';
+          showStatus(`구글시트 연결 실패, 로컬 백업 사용 중: ${err.message}`, 'error');
+          updateSourceChip();
+          return;
+        }
+      }
+
+      loadLocal();
+      state.source = 'local';
+      showStatus('구글시트 URL 미설정: 현재 로컬 데이터만 사용 중입니다.');
+      updateSourceChip();
+    }
+
+    function makeContractNo() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const serial = String(state.contracts.length + 1).padStart(3, '0');
+      return `C${y}${m}${day}${serial}`;
+    }
+
+    function findContractById(contractId) {
+      const targetId = String(contractId || '').trim();
+      if (!targetId) return null;
+      return state.contracts.find((item) => String(item?.id || '').trim() === targetId) || null;
+    }
+
+    function normalizeInstallRound(value) {
+      const round = String(value || '').trim();
+      if (round === '1차 예정') return '1차 후 2차 예정';
+      return round;
+    }
+
+    function findDuplicateContract(customerName, phone, excludeId = '') {
+      const nameKey = normalizeText(customerName);
+      const phoneKey = toDigits(phone);
+      const excluded = String(excludeId || '').trim();
+      if (!nameKey || phoneKey.length < 10) return null;
+
+      return state.contracts.find((item) => {
+        const itemId = String(item?.id || '').trim();
+        if (excluded && itemId === excluded) return false;
+        return normalizeText(item?.customerName) === nameKey && toDigits(item?.phone) === phoneKey;
+      }) || null;
+    }
+
+    function upsertContractState(contract) {
+      if (!contract || !contract.id) return;
+      const idx = state.contracts.findIndex((item) => String(item?.id || '') === String(contract.id));
+      if (idx === -1) state.contracts.push(contract);
+      else state.contracts[idx] = contract;
+    }
+
+    function copyText(value, label) {
+      const text = String(value || '');
+      if (!text) return;
+      navigator.clipboard.writeText(text)
+        .then(() => showStatus(`${label} 복사 완료`, 'success'))
+        .catch(() => showStatus(`${label} 복사 실패`, 'error'));
+    }
+
+    function formatDateTimeLabel(value) {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toLocaleString('ko-KR');
+    }
+
+    function loadInstallerProfile(defaultProfile = {}) {
+      let parsed = null;
+      try {
+        const raw = localStorage.getItem(INSTALLER_PROFILE_KEY);
+        parsed = raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        parsed = null;
+      }
+
+      return {
+        name: String(parsed?.name || defaultProfile?.name || '').trim(),
+        phone: toDigits(parsed?.phone || defaultProfile?.phone || ''),
+        address: String(parsed?.address || defaultProfile?.address || '').trim(),
+        signatureImage: String(parsed?.signatureImage || ''),
+        savedAt: String(parsed?.savedAt || ''),
+        signatureSavedAt: String(parsed?.signatureSavedAt || parsed?.savedAt || '')
+      };
+    }
+
+    function saveInstallerProfile() {
+      localStorage.setItem(INSTALLER_PROFILE_KEY, JSON.stringify({
+        name: state.installerProfile?.name || '',
+        phone: state.installerProfile?.phone || '',
+        address: state.installerProfile?.address || '',
+        signatureImage: state.installerProfile?.signatureImage || '',
+        savedAt: state.installerProfile?.savedAt || '',
+        signatureSavedAt: state.installerProfile?.signatureSavedAt || ''
+      }));
+    }
+
+    function collectInstallerProfileFromInputs() {
+      return {
+        name: ($('#installerNameInput')?.value || '').trim(),
+        phone: toDigits($('#installerPhoneInput')?.value || ''),
+        address: ($('#installerAddressInput')?.value || '').trim()
+      };
+    }
+
+    function saveInstallerBaseProfile(showMessage = true) {
+      if (!state.installerProfile) return false;
+
+      const next = collectInstallerProfileFromInputs();
+      if (!next.name) {
+        alert('시공자명을 입력해주세요.');
+        return false;
+      }
+      if (next.phone.length < 10) {
+        alert('시공자 연락처를 정확히 입력해주세요.');
+        return false;
+      }
+
+      state.installerProfile = {
+        ...state.installerProfile,
+        ...next,
+        savedAt: new Date().toISOString()
+      };
+      saveInstallerProfile();
+      renderInstallerProfile();
+      if (showMessage) showStatus('시공자 기본정보가 저장되었습니다.', 'success');
+      return true;
+    }
+
+    function renderOverlaySignature(targetId, dataUrl) {
+      const img = document.getElementById(targetId);
+      if (!img) return;
+
+      if (dataUrl) {
+        img.src = dataUrl;
+        img.classList.add('active');
+      } else {
+        img.removeAttribute('src');
+        img.classList.remove('active');
+      }
+    }
+
+    function renderInstallerProfile() {
+      const input = $('#installerNameInput');
+      const phoneInput = $('#installerPhoneInput');
+      const addressInput = $('#installerAddressInput');
+      const meta = $('#installerProfileMeta');
+      const preview = $('#installerSignaturePreview');
+      const empty = $('#installerSignatureEmpty');
+      if (input) input.value = state.installerProfile?.name || '';
+      if (phoneInput) phoneInput.value = state.installerProfile?.phone || '';
+      if (addressInput) addressInput.value = state.installerProfile?.address || '';
+      const installerSignNameInput = $('#installerSignNameInput');
+      if (installerSignNameInput) installerSignNameInput.value = getCurrentInstallerName() || '';
+
+      if (meta) {
+        const baseSaved = formatDateTimeLabel(state.installerProfile?.savedAt);
+        const signSaved = formatDateTimeLabel(state.installerProfile?.signatureSavedAt);
+        meta.textContent = [
+          baseSaved ? `기본정보 저장: ${baseSaved}` : '',
+          signSaved ? `서명 저장: ${signSaved}` : ''
+        ].filter(Boolean).join(' / ') || '시공자 기본정보를 저장하면 이후 계약서에 자동 반영됩니다.';
+      }
+
+      if (!preview || !empty) {
+        renderOverlaySignature('installerSignOverlay', state.installerProfile?.signatureImage || '');
+        return;
+      }
+
+      if (state.installerProfile?.signatureImage) {
+        preview.src = state.installerProfile.signatureImage;
+        preview.style.display = 'block';
+        empty.style.display = 'none';
+      } else {
+        preview.removeAttribute('src');
+        preview.style.display = 'none';
+        empty.style.display = 'block';
+      }
+
+      renderOverlaySignature('installerSignOverlay', state.installerProfile?.signatureImage || '');
+    }
+
+    function hydrateInstallerProfileFromContract(contract) {
+      if (!contract || !state.installerProfile) return;
+
+      const next = { ...state.installerProfile };
+      let changed = false;
+
+      if (!String(next.name || '').trim() && String(contract.installerName || '').trim()) {
+        next.name = String(contract.installerName || '').trim();
+        changed = true;
+      }
+      if (toDigits(next.phone || '').length < 10 && toDigits(contract.installerPhone || '').length >= 10) {
+        next.phone = toDigits(contract.installerPhone || '');
+        changed = true;
+      }
+      if (!String(next.address || '').trim() && String(contract.installerAddress || '').trim()) {
+        next.address = String(contract.installerAddress || '').trim();
+        changed = true;
+      }
+      if (!String(next.signatureImage || '').trim() && String(contract.installerSignatureImage || '').trim()) {
+        next.signatureImage = String(contract.installerSignatureImage || '').trim();
+        changed = true;
+      }
+
+      if (!changed) return;
+      state.installerProfile = next;
+      saveInstallerProfile();
+      renderInstallerProfile();
+    }
+
+    function setInstallerSignatureEditor(open) {
+      const wrap = $('#installerSignatureEditor');
+      const toggleBtn = $('#openInstallerSignatureBtn');
+      if (!wrap || !toggleBtn) return;
+
+      wrap.hidden = !open;
+      toggleBtn.textContent = open ? '서명 작성 닫기' : '서명 작성';
+
+      if (!open || !installerPadApi) return;
+
+      setTimeout(() => {
+        installerPadApi.resize(false);
+        installerPadApi.setValue(state.installerProfile?.signatureImage || '');
+      }, 30);
+    }
+
+    function syncContractOverlayFields() {
+      const paymentMethod = ($('#paymentMethodInput')?.value || '').trim();
+      const paymentSummaryInput = $('#paymentSummaryInput');
+      if (paymentSummaryInput) {
+        paymentSummaryInput.value = buildPaymentSummary(paymentMethod, $('#totalPriceInput')?.value || '');
+      }
+
+      const installDate = $('#installDateInput')?.value || '';
+      const d = new Date(installDate);
+      if (!Number.isNaN(d.getTime())) {
+        $('#docYearInput').value = String(d.getFullYear());
+        $('#docMonthInput').value = String(d.getMonth() + 1);
+        $('#docDayInput').value = String(d.getDate());
+      }
+
+      const customerName = ($('#ovCustomerName')?.value || '').trim();
+      const customerSignName = $('#customerSignNameInput');
+      if (customerSignName && !customerSignName.dataset.userEdited) {
+        customerSignName.value = customerName;
+      }
+    }
+
+    function renderContractFormMode() {
+      const titleEl = $('#adminContractTitle');
+      const noticeEl = $('#contractEditNotice');
+      const submitBtn = $('#contractSubmitBtn');
+      const cancelBtn = $('#cancelContractEditBtn');
+      const current = findContractById(state.editingContractId);
+      const isEditing = Boolean(current);
+
+      if (titleEl) titleEl.textContent = isEditing ? '기존 계약 수정' : '신규 계약 등록';
+      if (submitBtn) submitBtn.textContent = isEditing ? '계약 수정 저장' : '계약 저장';
+      if (cancelBtn) cancelBtn.hidden = !isEditing;
+
+      if (!noticeEl) return;
+      if (!isEditing) {
+        noticeEl.hidden = true;
+        noticeEl.textContent = '';
+        return;
+      }
+
+      noticeEl.hidden = false;
+      noticeEl.innerHTML = `현재 <strong>${current.customerName || '-'}</strong> 고객의 계약 <strong>${current.contractNo || '-'}</strong>을 수정 중입니다. 1차 시공 후 2차 시공 내용도 이 화면에서 이어서 반영한 뒤 다시 저장하면 기존 계약이 갱신됩니다.`;
+    }
+
+    function setContractEditingId(contractId = '') {
+      state.editingContractId = String(contractId || '').trim();
+      renderContractFormMode();
+      syncAdminLocationState();
+    }
+
+    function hasUnsavedContractFormChanges() {
+      const textValues = [
+        $('#ovCustomerName')?.value,
+        $('#ovAddress')?.value,
+        $('#ovPhone')?.value,
+        $('#ovProduct')?.value,
+        $('#paymentMethodInput')?.value,
+        $('#totalPriceInput')?.value,
+        document.querySelector('select[name="color"]')?.value,
+        document.querySelector('textarea[name="installNote"]')?.value,
+        $('#discountEtcInput')?.value,
+        $('#signatureImage')?.value
+      ];
+      if (textValues.some((value) => String(value || '').trim())) return true;
+      if ($$('input[name="discountType"]').some((el) => el.checked)) return true;
+
+      const installDate = String($('#installDateInput')?.value || '').trim();
+      if (installDate && installDate !== todayString()) return true;
+
+      const installRound = String(document.querySelector('select[name="installRound"]')?.value || '').trim();
+      if (installRound && installRound !== '1차 완료') return true;
+
+      return false;
+    }
+
+    function resetContractFormFields() {
+      const form = $('#adminContractForm');
+      if (!form) return;
+
+      form.reset();
+      $('#installDateInput').value = todayString();
+
+      const paymentSummaryInput = $('#paymentSummaryInput');
+      if (paymentSummaryInput) {
+        paymentSummaryInput.value = '';
+      }
+
+      const productItemsInput = $('#productItemsInput');
+      if (productItemsInput) productItemsInput.value = '';
+
+      const customerSignNameInput = $('#customerSignNameInput');
+      if (customerSignNameInput) {
+        customerSignNameInput.value = '';
+        customerSignNameInput.dataset.userEdited = '';
+      }
+
+      if (customerPadApi) customerPadApi.clear(true);
+      else {
+        const signatureInput = $('#signatureImage');
+        if (signatureInput) signatureInput.value = '';
+        renderOverlaySignature('customerSignOverlay', '');
+      }
+
+      $$('input[name="discountType"]').forEach((el) => { el.checked = false; });
+      syncDiscountEtcVisibility();
+      setProductItems([createProductItem()]);
+      renderInstallerProfile();
+      syncContractOverlayFields();
+    }
+
+    function startNewContractForm(showMessage = false) {
+      setContractEditingId('');
+      resetContractFormFields();
+      setAdminView('contract');
+      if (showMessage) showStatus('신규 계약 작성 모드로 전환했습니다.', 'success');
+    }
+
+    function loadContractIntoForm(contractId, options = {}) {
+      const { skipConfirm = false, showMessage = true, scroll = true } = options;
+      const target = findContractById(contractId);
+      if (!target) return false;
+
+      if (
+        !skipConfirm &&
+        String(state.editingContractId || '') !== String(target.id || '') &&
+        hasUnsavedContractFormChanges() &&
+        !confirm('현재 입력 중인 계약 내용이 덮어써질 수 있습니다. 기존 계약을 불러올까요?')
+      ) {
+        return false;
+      }
+
+      hydrateInstallerProfileFromContract(target);
+      setAdminView('contract');
+      setContractEditingId(target.id);
+      resetContractFormFields();
+
+      $('#ovCustomerName').value = String(target.customerName || '').trim();
+      $('#ovAddress').value = String(target.address || '').trim();
+      $('#ovPhone').value = String(target.phone || '').trim();
+      setProductItems(getProductItemsFromContract(target), {
+        legacyProductSummary: String(target.product || '').trim(),
+        legacyTotalPrice: target.totalPrice
+      });
+      $('#paymentMethodInput').value = String(target.paymentMethod || '').trim();
+
+      const paymentSummaryInput = $('#paymentSummaryInput');
+      if (paymentSummaryInput) {
+        paymentSummaryInput.value = buildPaymentSummary(target.paymentMethod, target.totalPrice) || String(target.paymentSummary || '').trim();
+      }
+
+      const colorInput = document.querySelector('select[name="color"]');
+      if (colorInput) colorInput.value = String(target.color || '').trim();
+
+      $('#installDateInput').value = normalizeDateInputValue(target.installDate, todayString()) || todayString();
+      $('#docYearInput').value = String(target.docYear || '').trim();
+      $('#docMonthInput').value = String(target.docMonth || '').trim();
+      $('#docDayInput').value = String(target.docDay || '').trim();
+
+      const installRoundInput = document.querySelector('select[name="installRound"]');
+      if (installRoundInput) {
+        const normalizedRound = normalizeInstallRound(target.installRound);
+        const hasRound = Array.from(installRoundInput.options).some((option) => option.value === normalizedRound);
+        installRoundInput.value = hasRound ? normalizedRound : (installRoundInput.options[0]?.value || '');
+      }
+
+      const discountSet = new Set(
+        String(target.discountTypes || '')
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean)
+      );
+      if (String(target.discountEtc || '').trim()) discountSet.add('기타');
+      $$('input[name="discountType"]').forEach((el) => {
+        el.checked = discountSet.has(el.value);
+      });
+      syncDiscountEtcVisibility();
+      if ($('#discountEtcInput')) $('#discountEtcInput').value = String(target.discountEtc || '').trim();
+
+      const installNoteInput = document.querySelector('textarea[name="installNote"]');
+      if (installNoteInput) installNoteInput.value = String(target.installNote || '').trim();
+
+      const customerSignNameInput = $('#customerSignNameInput');
+      if (customerSignNameInput) {
+        customerSignNameInput.value = String(target.customerSignName || '').trim();
+        customerSignNameInput.dataset.userEdited = customerSignNameInput.value ? '1' : '';
+      }
+
+      const installerSignNameInput = $('#installerSignNameInput');
+      if (installerSignNameInput && !String(installerSignNameInput.value || '').trim()) {
+        installerSignNameInput.value = String(target.installerSignName || '').trim();
+      }
+
+      const signatureImage = String(target.signatureImage || '').trim();
+      const signatureInput = $('#signatureImage');
+      if (signatureInput) signatureInput.value = signatureImage;
+
+      syncContractOverlayFields();
+      const installerOverlayValue = String(state.installerProfile?.signatureImage || target.installerSignatureImage || '').trim();
+      renderOverlaySignature('installerSignOverlay', installerOverlayValue);
+
+      setTimeout(() => {
+        if (customerPadApi) {
+          customerPadApi.resize(false);
+          customerPadApi.setValue(signatureImage);
+        } else {
+          renderOverlaySignature('customerSignOverlay', signatureImage);
+        }
+      }, 40);
+
+      if (showMessage) {
+        showStatus(`${target.customerName || '고객'} 계약을 불러왔습니다. 수정 후 다시 저장해주세요.`, 'success');
+      }
+      if (scroll) {
+        const card = $('#adminContractCard');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return true;
+    }
+
+    function setupContractOverlayBindings() {
+      const customerSignNameInput = $('#customerSignNameInput');
+      const paymentMethodInput = $('#paymentMethodInput');
+
+      if (customerSignNameInput) {
+        customerSignNameInput.addEventListener('input', () => {
+          customerSignNameInput.dataset.userEdited = customerSignNameInput.value.trim() ? '1' : '';
+        });
+      }
+
+      if (paymentMethodInput) paymentMethodInput.addEventListener('input', syncContractOverlayFields);
+
+      ['installDateInput', 'ovCustomerName'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', syncContractOverlayFields);
+        if (el && id === 'installDateInput') el.addEventListener('change', syncContractOverlayFields);
+      });
+    }
+
+    function setupProductItemBindings() {
+      const addBtn = $('#addProductItemBtn');
+      const list = $('#productItemList');
+      if (!list) return;
+
+      if (addBtn) {
+        addBtn.addEventListener('click', () => {
+          state.legacyProductSummary = '';
+          state.legacyTotalPrice = '';
+          state.productItems.push(createProductItem());
+          renderProductItemRows();
+          syncProductPricingFields();
+        });
+      }
+
+      list.addEventListener('input', (event) => {
+        const row = event.target.closest('[data-product-item-row]');
+        if (!row) return;
+
+        const rowId = row.dataset.productItemRow;
+        const item = state.productItems.find((entry) => entry.id === rowId);
+        if (!item) return;
+
+        if (event.target.matches('[data-product-item-type]')) {
+          state.legacyProductSummary = '';
+          state.legacyTotalPrice = '';
+          const catalog = findMatCatalogItem(event.target.value);
+          item.type = catalog ? catalog.name : '';
+          renderProductItemRows();
+          syncProductPricingFields();
+          return;
+        }
+
+        if (event.target.matches('[data-product-item-qty]')) {
+          state.legacyProductSummary = '';
+          state.legacyTotalPrice = '';
+          item.quantity = Math.max(0, Number.parseInt(event.target.value, 10) || 0);
+          syncProductPricingFields();
+
+          const unitPrice = getMatUnitPrice(item.type);
+          const subtotal = unitPrice * item.quantity;
+          const subtotalEl = row.querySelector('[data-product-item-subtotal]');
+          if (subtotalEl) subtotalEl.textContent = formatMoneyText(subtotal) || '-';
+        }
+      });
+
+      list.addEventListener('click', (event) => {
+        const removeBtn = event.target.closest('[data-remove-product-item]');
+        if (!removeBtn) return;
+
+        const row = removeBtn.closest('[data-product-item-row]');
+        if (!row) return;
+
+        state.legacyProductSummary = '';
+        state.legacyTotalPrice = '';
+        state.productItems = state.productItems.filter((item) => item.id !== row.dataset.productItemRow);
+        if (!state.productItems.length) state.productItems = [createProductItem()];
+        renderProductItemRows();
+        syncProductPricingFields();
+      });
+    }
+
+    function syncDiscountEtcVisibility() {
+      const wrap = $('#discountEtcWrap');
+      const input = $('#discountEtcInput');
+      if (!wrap || !input) return;
+
+      const isOtherChecked = $$('input[name="discountType"]').some((el) => {
+        return el.value === '기타' && el.checked;
+      });
+
+      wrap.hidden = !isOtherChecked;
+      input.disabled = !isOtherChecked;
+      if (!isOtherChecked) input.value = '';
+    }
+
+    function setupDiscountTypeBindings() {
+      $$('input[name="discountType"]').forEach((el) => {
+        el.addEventListener('change', syncDiscountEtcVisibility);
+      });
+      syncDiscountEtcVisibility();
+    }
+
+    function setupInstallerProfileBindings() {
+      const nameInput = $('#installerNameInput');
+      const phoneInput = $('#installerPhoneInput');
+      const installerSignNameInput = $('#installerSignNameInput');
+
+      if (nameInput && installerSignNameInput) {
+        nameInput.addEventListener('input', () => {
+          installerSignNameInput.value = nameInput.value.trim();
+        });
+      }
+
+      if (phoneInput) {
+        phoneInput.addEventListener('input', () => {
+          phoneInput.value = phoneInput.value.replace(/[^0-9-]/g, '');
+        });
+      }
+    }
+
+    function filterContracts() {
+      const keyword = normalizeText(state.filterKeyword);
+      const items = getMyInstallerContractsSorted();
+      if (!keyword) return items.slice(0, RECENT_CONTRACT_LIMIT);
+
+      return items.filter((item) => {
+        const target = [
+          item.contractNo,
+          item.customerName,
+          item.phone,
+          item.address,
+          item.product,
+          item.color,
+          item.installRound,
+          item.discountTypes,
+          item.discountEtc,
+          item.installNote,
+          item.installerName,
+          item.installerPhone
+        ].join(' ').toLowerCase();
+        return target.includes(keyword);
+      });
+    }
+
+    function renderStats() {
+      const today = todayString();
+      const myContracts = getMyInstallerContractsSorted();
+      const myAsRequests = getMyInstallerAsRequests();
+      const todayCount = myContracts.filter((item) => String(item.createdAt || '').startsWith(today)).length;
+      $('#statTotal').textContent = String(myContracts.length);
+      $('#statToday').textContent = String(todayCount);
+      $('#statFiltered').textContent = String(myAsRequests.length);
+    }
+
+    function renderSummaryContractList() {
+      const metaEl = $('#summaryContractMeta');
+      const listEl = $('#summaryContractList');
+      if (!metaEl || !listEl) return;
+
+      const items = filterContracts();
+      const myTotal = getMyInstallerContractsSorted().length;
+      const hasKeyword = Boolean(normalizeText(state.filterKeyword));
+      metaEl.textContent = hasKeyword
+        ? `내 계약 ${myTotal}건 중 검색결과 ${items.length}건 (과거 내역 포함)`
+        : `내 계약 ${myTotal}건 중 최신 ${Math.min(RECENT_CONTRACT_LIMIT, items.length)}건 표시`;
+
+      if (!items.length) {
+        const hasKeyword = Boolean(normalizeText(state.filterKeyword));
+        listEl.innerHTML = hasKeyword
+          ? '<div class="notice">검색 조건에 맞는 내 계약내역이 없습니다.</div>'
+          : '<div class="notice">표시할 최근 계약내역이 없습니다.</div>';
+        return;
+      }
+
+      listEl.innerHTML = items.map((item) => `
+        <div class="item">
+          <div class="item-head">
+            <div>
+              <div class="item-title">${item.customerName || '-'} / ${item.contractNo || '-'}</div>
+              <div class="muted">${String(item.createdAt || '').slice(0, 10) || '-'} · 연락처 ${item.phone || '-'}</div>
+            </div>
+            <span class="badge">${item.installRound || '-'}</span>
+          </div>
+          <div class="item-line">주소: ${item.address || '-'}<br>제품: ${item.product || '-'} / ${item.color || '-'}<br>결제: ${formatMoneyText(item.totalPrice) || item.totalPrice || '-'}${item.paymentMethod ? ` (${item.paymentMethod})` : ''}</div>
+          <div class="actions" style="margin-top:10px;">
+            <button class="btn tiny secondary" type="button" data-edit-contract="${String(item.id || '').replace(/"/g, '&quot;')}">불러와 수정</button>
+            <a class="btn tiny outline" href="./contract.html?id=${encodeURIComponent(String(item.id || ''))}" target="_blank" rel="noopener">계약서 보기</a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderContractList() {
+      renderStats();
+      renderSummaryContractList();
+    }
+
+    function getAsStatusBadge(status) {
+      if (status === '처리완료') return '<span class="badge green">처리완료</span>';
+      if (status === '처리중') return '<span class="badge yellow">처리중</span>';
+      return '<span class="badge">접수중</span>';
+    }
+
+    function filterAsRequests() {
+      const keyword = normalizeText(state.asFilterKeyword);
+      const status = state.asFilterStatus;
+      let items = getMyInstallerAsRequests();
+
+      if (status !== 'all') {
+        items = items.filter((item) => String(item.status || '') === status);
+      }
+
+      if (!keyword) return items;
+      return items.filter((item) => {
+        const target = [
+          item.asNo,
+          item.contractNo,
+          item.customerName,
+          item.phone,
+          getAsRequestType(item),
+          item.requestDetail,
+          item.address,
+          item.product
+        ].join(' ').toLowerCase();
+        return target.includes(keyword);
+      });
+    }
+
+    function renderAdminAsList() {
+      const el = $('#adminAsList');
+      if (!el) return;
+
+      const myTotal = getMyInstallerAsRequests().length;
+      const items = filterAsRequests();
+      $('#asMeta').textContent = `내 시공 고객 AS ${myTotal}건 / 현재 ${items.length}건 표시`;
+
+      if (!items.length) {
+        el.innerHTML = '<div class="notice">조건에 맞는 내 고객 AS 신청이 없습니다.</div>';
+        return;
+      }
+
+      el.innerHTML = items.map((item) => {
+        const linkedContract = findContractForAsRequest(item);
+        const contractNo = linkedContract?.contractNo || item.contractNo || '-';
+        const product = item.product || linkedContract?.product || '-';
+        const address = item.address || linkedContract?.address || '-';
+        const detailPreview = makePreviewText(item.requestDetail);
+        const techNoteState = item.techNote ? '처리 메모 있음' : '처리 메모 없음';
+        const requestUrl = `./as-detail.html?id=${encodeURIComponent(String(item.id || ''))}`;
+
+        return `
+          <a class="as-item as-link-card" href="${requestUrl}">
+            <div class="as-head">
+              <div>
+                <div class="item-title">${escapeHtml(item.customerName || '-')} / ${escapeHtml(getAsRequestType(item) || '-')}</div>
+                <div class="muted">${escapeHtml(item.asNo || '-')} · ${escapeHtml(String(item.createdAt || '').slice(0, 10) || '-')}</div>
+              </div>
+              ${getAsStatusBadge(item.status)}
+            </div>
+            <div class="item-line">연락처: ${escapeHtml(item.phone || '-')}<br>계약번호: ${escapeHtml(contractNo)}<br>제품: ${escapeHtml(product)}<br>주소: ${escapeHtml(address)}<br>희망연락시간: ${escapeHtml(item.contactTime || '-')}</div>
+            <div class="as-note">고객 신청 내용: ${escapeHtml(detailPreview)}</div>
+            <div class="as-open-row">
+              <span class="as-open-label">상세 페이지 열기</span>
+              <span class="muted">${escapeHtml(techNoteState)}</span>
+            </div>
+          </a>
+        `;
+      }).join('');
+    }
+
+    function setAdminView(view) {
+      if (view === 'summary') state.adminView = 'summary';
+      else if (view === 'contract') state.adminView = 'contract';
+      else if (view === 'as') state.adminView = 'as';
+      else state.adminView = 'installer';
+      const installerCard = $('#installerCard');
+      const contractCard = $('#adminContractCard');
+      const asCard = $('#adminAsCard');
+      const statsCard = $('#adminStatsCard');
+      if (installerCard) installerCard.classList.toggle('hidden-view', state.adminView !== 'installer');
+      if (contractCard) contractCard.classList.toggle('hidden-view', state.adminView !== 'contract');
+      if (asCard) asCard.classList.toggle('hidden-view', state.adminView !== 'as');
+      if (statsCard) statsCard.classList.toggle('hidden-view', state.adminView !== 'summary');
+
+      $$('[data-admin-view-btn]').forEach((btn) => {
+        const isActive = btn.dataset.adminViewBtn === state.adminView;
+        btn.classList.toggle('active', isActive);
+      });
+
+      syncAdminLocationState();
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 30);
+    }
+
+    function csvEscape(value) {
+      const text = String(value == null ? '' : value);
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+
+    function exportContractsCsv() {
+      const keyword = normalizeText(state.filterKeyword);
+      const rows = keyword ? filterContracts() : getMyInstallerContractsSorted();
+      if (!rows.length) {
+        showStatus('내보낼 계약 데이터가 없습니다.', 'error');
+        return;
+      }
+
+      const headers = ['계약번호', '고객명', '연락처', '주소', '제품', '색상', '총금액', '결제방식', '결제요약', '시공일자', '시공차수', '할인유형', '기타할인', '시공특이사항', '시공자명', '등록일'];
+      const lines = [headers.map(csvEscape).join(',')];
+
+      rows.forEach((item) => {
+        lines.push([
+          item.contractNo,
+          item.customerName,
+          item.phone,
+          item.address,
+          item.product,
+          item.color,
+          item.totalPrice,
+          item.paymentMethod,
+          item.paymentSummary,
+          item.installDate,
+          item.installRound,
+          item.discountTypes,
+          item.discountEtc,
+          item.installNote,
+          item.installerName,
+          item.createdAt
+        ].map(csvEscape).join(','));
+      });
+
+      const csv = `\uFEFF${lines.join('\n')}`;
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `aikongkong_contracts_${todayString()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showStatus('CSV 파일을 내보냈습니다.', 'success');
+    }
+
+    function createSignaturePad(canvas, clearBtn, options = {}) {
+      if (!canvas || !clearBtn) return null;
+
+      const ctx = canvas.getContext('2d');
+      let drawing = false;
+      let hasStroke = false;
+      let lastX = 0;
+      let lastY = 0;
+
+      function setDrawingStyle() {
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#111827';
+      }
+
+      function saveCurrentValue() {
+        const value = hasStroke ? canvas.toDataURL('image/png') : '';
+        if (options.hiddenInput) options.hiddenInput.value = value;
+        if (typeof options.onChange === 'function') options.onChange(value);
+      }
+
+      function clearCanvas(emitChange = true) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hasStroke = false;
+        if (options.hiddenInput) options.hiddenInput.value = '';
+        if (emitChange && typeof options.onChange === 'function') options.onChange('');
+      }
+
+      function resizeCanvas(keepDrawing = true) {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        const rect = canvas.getBoundingClientRect();
+        const prev = keepDrawing && hasStroke ? canvas.toDataURL('image/png') : '';
+
+        canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+        canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(ratio, ratio);
+        setDrawingStyle();
+
+        if (prev) {
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0, rect.width, rect.height);
+            hasStroke = true;
+            saveCurrentValue();
+          };
+          img.src = prev;
+        }
+      }
+
+      function pointFromClient(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: clientX - rect.left, y: clientY - rect.top };
+      }
+
+      function startDraw(x, y) {
+        drawing = true;
+        hasStroke = true;
+        lastX = x;
+        lastY = y;
+
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 0.01, y + 0.01);
+        ctx.stroke();
+      }
+
+      function moveDraw(x, y) {
+        if (!drawing) return;
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        lastX = x;
+        lastY = y;
+      }
+
+      function endDraw() {
+        if (!drawing) return;
+        drawing = false;
+        saveCurrentValue();
+      }
+
+      function setValue(dataUrl) {
+        clearCanvas(false);
+        if (!dataUrl) {
+          saveCurrentValue();
+          return;
+        }
+
+        const rect = canvas.getBoundingClientRect();
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, rect.width, rect.height);
+          hasStroke = true;
+          saveCurrentValue();
+        };
+        img.src = dataUrl;
+      }
+
+      function getValue() {
+        return hasStroke ? canvas.toDataURL('image/png') : '';
+      }
+
+      canvas.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const p = pointFromClient(e.clientX, e.clientY);
+        startDraw(p.x, p.y);
+      });
+
+      canvas.addEventListener('pointermove', (e) => {
+        e.preventDefault();
+        const p = pointFromClient(e.clientX, e.clientY);
+        moveDraw(p.x, p.y);
+      });
+
+      canvas.addEventListener('pointerup', (e) => { e.preventDefault(); endDraw(); });
+      canvas.addEventListener('pointercancel', (e) => { e.preventDefault(); endDraw(); });
+      canvas.addEventListener('pointerleave', (e) => { e.preventDefault(); endDraw(); });
+
+      clearBtn.addEventListener('click', () => clearCanvas(true));
+
+      window.addEventListener('resize', () => resizeCanvas(true));
+      resizeCanvas(false);
+
+      if (options.initialValue) {
+        setValue(options.initialValue);
+      }
+
+      return { getValue, setValue, clear: clearCanvas, resize: resizeCanvas };
+    }
+
+    function loadEntrySession() {
+      try {
+        const raw = sessionStorage.getItem(ENTRY_SESSION_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function hasAdminSession(entry) {
+      if (!entry || entry.role !== 'admin') return false;
+      const adminId = String(entry.adminId || '').trim();
+      const phone = toDigits(entry.phone);
+      return Boolean(adminId || phone);
+    }
+
+    function guardAdminAccess() {
+      const entry = loadEntrySession();
+      if (!hasAdminSession(entry)) {
+        alert('관리자 정보로 로그인 후 접근해주세요.');
+        location.replace('./index.html');
+        return null;
+      }
+      return entry;
+    }
+
+    let customerPadApi = null;
+    let installerPadApi = null;
+
+    function setupSignatureAreas() {
+      customerPadApi = createSignaturePad(
+        $('#signaturePad'),
+        $('#clearSignatureBtn'),
+        {
+          hiddenInput: $('#signatureImage'),
+          onChange: (value) => {
+            renderOverlaySignature('customerSignOverlay', value);
+          }
+        }
+      );
+
+      installerPadApi = createSignaturePad(
+        $('#installerSignaturePad'),
+        $('#clearInstallerSignatureBtn'),
+        {
+          initialValue: ''
+        }
+      );
+
+      renderOverlaySignature('customerSignOverlay', $('#signatureImage')?.value || '');
+      renderInstallerProfile();
+      setInstallerSignatureEditor(false);
+
+      $('#saveInstallerProfileBtn').addEventListener('click', () => {
+        saveInstallerBaseProfile(true);
+      });
+
+      $('#openInstallerSignatureBtn').addEventListener('click', () => {
+        const wrap = $('#installerSignatureEditor');
+        setInstallerSignatureEditor(Boolean(wrap?.hidden));
+      });
+
+      $('#saveInstallerSignatureBtn').addEventListener('click', () => {
+        if (!state.installerProfile) return;
+        if (!saveInstallerBaseProfile(false)) return;
+
+        const installerSignatureImage = installerPadApi ? installerPadApi.getValue() : '';
+        if (!installerSignatureImage) {
+          alert('시공자 서명을 먼저 입력해주세요.');
+          return;
+        }
+
+        state.installerProfile.signatureImage = installerSignatureImage;
+        state.installerProfile.signatureSavedAt = new Date().toISOString();
+        saveInstallerProfile();
+        renderInstallerProfile();
+        setInstallerSignatureEditor(false);
+        showStatus('시공자 서명이 저장되었습니다. 이후 계약 저장 시 자동 반영됩니다.', 'success');
+      });
+    }
+
+    function enableDevAutoReload() {
+      if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+      if (!(location.hostname === 'localhost' || location.hostname === '127.0.0.1')) return;
+
+      let lastModified = null;
+      setInterval(async () => {
+        try {
+          const res = await fetch(location.href.split('#')[0], { method: 'HEAD', cache: 'no-store' });
+          const next = res.headers.get('Last-Modified');
+          if (!next) return;
+          if (lastModified && next !== lastModified) {
+            location.reload();
+            return;
+          }
+          lastModified = next;
+        } catch (_) {}
+      }, 1200);
+    }
+
+    $('#summaryContractSearch').addEventListener('input', (e) => {
+      state.filterKeyword = e.target.value || '';
+      renderSummaryContractList();
+    });
+
+    $('#summaryReloadBtn').addEventListener('click', async () => {
+      await loadData();
+      renderContractList();
+      renderAdminAsList();
+    });
+
+    $('#summaryContractList').addEventListener('click', (e) => {
+      const editBtn = e.target.closest('[data-edit-contract]');
+      if (!editBtn) return;
+      loadContractIntoForm(editBtn.dataset.editContract);
+    });
+
+    $('#asReloadBtn').addEventListener('click', async () => {
+      await loadData();
+      renderAdminAsList();
+    });
+
+    $('#asSearchInput').addEventListener('input', (e) => {
+      state.asFilterKeyword = e.target.value || '';
+      renderAdminAsList();
+    });
+
+    $('#asStatusFilter').addEventListener('change', (e) => {
+      state.asFilterStatus = e.target.value || 'all';
+      renderAdminAsList();
+    });
+
+    $('#topSearchBtn').addEventListener('click', () => {
+      location.href = './contracts.html';
+    });
+
+    $('#topBellBtn').addEventListener('click', () => {
+      showStatus('새 알림이 없습니다.', 'success');
+    });
+
+    $$('[data-admin-view-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        setAdminView(btn.dataset.adminViewBtn);
+      });
+    });
+
+    $('#cancelContractEditBtn').addEventListener('click', () => {
+      if (hasUnsavedContractFormChanges() && !confirm('현재 작성 중인 수정 내용은 지워집니다. 신규 계약 작성으로 돌아갈까요?')) {
+        return;
+      }
+      startNewContractForm(true);
+    });
+
+    $('#adminContractForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!state.adminLoggedIn) return;
+
+      const form = e.currentTarget;
+      const fd = new FormData(form);
+      const signatureImage = fd.get('signatureImage');
+      const customerName = String(fd.get('customerName') || '').trim();
+      const phone = toDigits(fd.get('phone'));
+      const discountTypes = fd.getAll('discountType').map((v) => String(v || '').trim()).filter(Boolean);
+      const discountEtc = $('#discountEtcInput')?.disabled ? '' : String(fd.get('discountEtc') || '').trim();
+      const productSummary = String(fd.get('product') || '').trim();
+      const productItems = String(fd.get('productItems') || '').trim();
+      const nextInstallerProfile = {
+        ...(state.installerProfile || {}),
+        ...collectInstallerProfileFromInputs()
+      };
+      const installerName = String(nextInstallerProfile.name || '').trim();
+      const installerPhone = toDigits(nextInstallerProfile.phone || '');
+      const installerAddress = String(nextInstallerProfile.address || '').trim();
+      const installerSignatureImage = String(state.installerProfile?.signatureImage || '').trim();
+
+      if (phone.length < 10) {
+        alert('연락처를 정확히 입력해주세요.');
+        return;
+      }
+
+      if (!hasConfiguredProductPricing() || !productSummary || !normalizeMoneyValue(fd.get('totalPrice'))) {
+        alert('매트 종류와 수량을 먼저 선택해주세요. 결제금액은 자동 계산됩니다.');
+        return;
+      }
+
+      if (!signatureImage) {
+        alert('전자서명을 먼저 입력해주세요.');
+        return;
+      }
+
+      if (!installerName) {
+        alert('시공자 정보를 먼저 입력해주세요.');
+        return;
+      }
+
+      if (installerPhone.length < 10) {
+        alert('시공자 연락처를 정확히 입력해주세요.');
+        return;
+      }
+
+      if (!installerSignatureImage) {
+        alert('시공자 서명을 먼저 저장해주세요.');
+        return;
+      }
+
+      let editingTarget = findContractById(state.editingContractId);
+      const duplicateContract = findDuplicateContract(customerName, phone, editingTarget?.id || '');
+      if (!editingTarget && duplicateContract) {
+        const duplicateLabel = duplicateContract.contractNo || duplicateContract.customerName || '기존 계약';
+        const shouldUpdateExisting = confirm(`같은 고객명과 연락처로 저장된 계약(${duplicateLabel})이 있습니다. 새로 중복 저장하지 않고 기존 계약을 수정 저장할까요?`);
+        if (!shouldUpdateExisting) {
+          showStatus('중복 저장을 막기 위해 새 계약 생성은 취소했습니다. 필요하면 계약을 불러와 수정해주세요.', 'error');
+          return;
+        }
+        editingTarget = duplicateContract;
+        setContractEditingId(duplicateContract.id);
+        setAdminView('contract');
+      }
+
+      if (editingTarget) {
+        const conflictContract = findDuplicateContract(customerName, phone, editingTarget.id);
+        if (conflictContract) {
+          alert(`다른 기존 계약(${conflictContract.contractNo || conflictContract.customerName || '-'})과 고객명/연락처가 중복됩니다. 해당 계약을 불러와 수정해주세요.`);
+          return;
+        }
+      }
+
+      state.installerProfile = {
+        ...state.installerProfile,
+        name: installerName,
+        phone: installerPhone,
+        address: installerAddress,
+        signatureImage: installerSignatureImage,
+        savedAt: state.installerProfile?.savedAt || new Date().toISOString()
+      };
+      saveInstallerProfile();
+      renderInstallerProfile();
+
+      const nowIso = new Date().toISOString();
+      const paymentMethod = String(fd.get('paymentMethod') || '').trim();
+      const totalPrice = normalizeMoneyValue(fd.get('totalPrice'));
+      const paymentSummary = buildPaymentSummary(paymentMethod, totalPrice);
+      const payload = {
+        id: editingTarget?.id || `contract_${Date.now()}`,
+        contractNo: editingTarget?.contractNo || makeContractNo(),
+        customerName,
+        phone,
+        address: fd.get('address'),
+        product: productSummary,
+        productItems,
+        color: fd.get('color'),
+        totalPrice,
+        paymentMethod,
+        paymentSummary,
+        installDate: fd.get('installDate'),
+        docYear: fd.get('docYear'),
+        docMonth: fd.get('docMonth'),
+        docDay: fd.get('docDay'),
+        installRound: fd.get('installRound'),
+        discountTypes: discountTypes.join(', '),
+        discountEtc,
+        installNote: fd.get('installNote'),
+        customerSignName: fd.get('customerSignName'),
+        installerSignName: installerName,
+        signatureImage,
+        installerName,
+        installerPhone,
+        installerAddress,
+        installerSignatureImage,
+        createdAt: editingTarget?.createdAt || nowIso,
+        updatedAt: nowIso
+      };
+
+      let savedContract = payload;
+      const actionLabel = editingTarget ? '기존 계약 수정 저장' : '신규 계약 저장';
+      try {
+        const data = await postRemote('saveContract', { contract: payload });
+        const saved = { ...payload, ...(data.contract || {}) };
+        upsertContractState(saved);
+        savedContract = saved;
+        saveLocal();
+        state.source = 'sheets';
+        updateSourceChip();
+        showStatus(`${actionLabel} 완료`, 'success');
+      } catch (err) {
+        upsertContractState(payload);
+        savedContract = payload;
+        saveLocal();
+        state.source = 'local';
+        updateSourceChip();
+        showStatus(`원격 저장 실패로 ${actionLabel} 내용을 로컬 백업에 우선 반영했습니다: ${err.message}`, 'error');
+      }
+
+      setContractEditingId('');
+      resetContractFormFields();
+      renderContractList();
+
+      const previewId = encodeURIComponent(String(savedContract.id || payload.id || ''));
+      const previewUrl = `./contract.html?id=${previewId}`;
+      const popup = window.open(previewUrl, '_blank', 'noopener');
+      if (!popup) location.href = previewUrl;
+    });
+
+    (async function init() {
+      const entry = guardAdminAccess();
+      if (!entry) return;
+
+      const requestedView = getRequestedAdminView();
+      const requestedEditId = getRequestedEditContractId();
+      const initialView = requestedEditId ? 'contract' : (requestedView || 'summary');
+
+      state.adminLoggedIn = true;
+      state.currentAdminName = String(entry.name || '').trim();
+      state.currentAdminPhone = toDigits(entry.phone);
+      $('#heroNameText').textContent = `${entry.name} 님`;
+      $('#sessionChip').textContent = `${entry.name} 관리자 인증됨`;
+      state.installerProfile = loadInstallerProfile({
+        name: entry.name,
+        phone: entry.phone,
+        address: ''
+      });
+      renderInstallerProfile();
+      saveInstallerProfile();
+
+      if (!String(localStorage.getItem(SHEETS_API_URL_KEY) || '').trim()) {
+        localStorage.setItem(SHEETS_API_URL_KEY, DEFAULT_SHEETS_API_URL);
+      }
+      $('#installDateInput').value = todayString();
+      setupContractOverlayBindings();
+      setupProductItemBindings();
+      setupDiscountTypeBindings();
+      setupInstallerProfileBindings();
+      setProductItems([createProductItem()]);
+      syncContractOverlayFields();
+
+      setupSignatureAreas();
+      renderContractFormMode();
+      setAdminView(initialView);
+      if (hasStoredLocalData()) {
+        loadLocal();
+        state.source = 'local';
+        showStatus('Google Sheets 연동 상태를 확인 중입니다. 현재 로컬 백업을 먼저 표시합니다.');
+      } else {
+        state.source = 'checking';
+        showStatus('Google Sheets 연동 상태를 확인 중입니다.');
+      }
+      updateSourceChip();
+      renderContractList();
+      renderAdminAsList();
+      await loadData();
+      renderContractList();
+      renderAdminAsList();
+      if (requestedEditId) {
+        const loaded = loadContractIntoForm(requestedEditId, { skipConfirm: true, showMessage: false, scroll: false });
+        if (!loaded) {
+          setContractEditingId('');
+          setAdminView(requestedView || 'summary');
+          showStatus('수정할 계약을 찾지 못했습니다. 계약 목록을 다시 확인해주세요.', 'error');
+        }
+      }
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 30);
+      enableDevAutoReload();
+    })();
+  </script>
+</body>
+</html>

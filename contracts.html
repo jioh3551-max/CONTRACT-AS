@@ -1,0 +1,750 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>저장된 계약목록</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg: #edf2f8;
+      --card: #f8fbff;
+      --line: #dde5ef;
+      --text: #182230;
+      --muted: #6d7888;
+      --blue: #2f9191;
+      --blue-soft: #e8f5f4;
+      --green: #256c54;
+      --green-soft: #e7f4ee;
+      --shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+      --radius: 24px;
+      --ring: 0 0 0 3px rgba(72, 183, 182, 0.2);
+    }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "SUIT", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 420px at -10% -20%, rgba(72, 183, 182, 0.14) 0%, rgba(72, 183, 182, 0) 60%),
+        radial-gradient(900px 360px at 110% 0, rgba(239, 157, 184, 0.11) 0%, rgba(239, 157, 184, 0) 62%),
+        var(--bg);
+    }
+
+    .container { max-width: 980px; margin: 0 auto; padding: 16px 14px 60px; }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .chip.success { background: var(--green-soft); color: var(--green); }
+
+    .link-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .link {
+      text-decoration: none;
+      color: #566070;
+      font-weight: 700;
+      border-bottom: 1px solid transparent;
+    }
+
+    .link:hover { border-bottom-color: #566070; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+
+    .notice {
+      background: #f5f7fa;
+      border: 1px solid #e2e6ec;
+      border-radius: 16px;
+      padding: 12px 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .success { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    .error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      border: 1px solid #e7e9ee;
+      border-radius: 18px;
+      background: #ffffff;
+      padding: 14px;
+    }
+
+    .stat .k { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    .stat .v { font-size: 30px; font-weight: 900; letter-spacing: -0.02em; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      max-width: 340px;
+      border: 1px solid #e5e7ec;
+      border-radius: 15px;
+      padding: 12px 14px;
+      font-size: 15px;
+      background: #f2f6fb;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+    input:focus {
+      outline: none;
+      border-color: rgba(72, 183, 182, 0.7);
+      box-shadow: var(--ring);
+      background: #f7fbff;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 11px 14px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease, filter 0.2s ease;
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, #48b7b6 0%, #2f9191 100%);
+      color: #fff;
+      box-shadow: 0 8px 14px rgba(47, 145, 145, 0.24);
+    }
+    .btn.secondary { background: #e6f4f3; color: #236f6f; }
+    .btn.outline { background: #fff; border: 1px solid #d8dde6; color: #1f2937; }
+    .btn.tiny { padding: 7px 10px; font-size: 12px; border-radius: 10px; }
+    .btn:hover { filter: brightness(1.02); }
+    .btn:active { transform: translateY(1px); }
+
+    .list-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .item-list { display: grid; gap: 14px; margin-top: 12px; }
+
+    .item {
+      border: 1px solid #e4e7ee;
+      border-radius: 20px;
+      padding: 15px;
+      background: #fff;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.03);
+    }
+
+    .item-title { font-size: 18px; font-weight: 800; }
+    .muted { color: var(--muted); font-size: 14px; }
+
+    .item-line {
+      margin-top: 10px;
+      background: #f6f7fa;
+      border: 1px solid #eceff4;
+      border-radius: 14px;
+      padding: 10px;
+      line-height: 1.6;
+      font-size: 14px;
+      color: #334155;
+    }
+
+    .thumb-sign {
+      margin-top: 10px;
+      max-width: 220px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      align-items: center;
+    }
+
+    @media (max-width: 920px) {
+      .stats { grid-template-columns: 1fr; }
+      input { max-width: none; }
+      .title { font-size: 30px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <h1 class="title" id="heroTitle">저장된 계약목록</h1>
+      <span id="sourceChip" class="chip">데이터 소스: -</span>
+    </div>
+
+    <div class="link-row">
+      <a class="link" href="./admin.html">관리자 페이지</a>
+      <a class="link" href="./contract.html">계약서 페이지</a>
+      <a class="link" href="./index.html">처음 화면</a>
+    </div>
+
+    <div id="topNotice" class="notice">Google Sheets 연동 상태를 확인 중입니다.</div>
+
+    <section class="card">
+      <div class="stats">
+        <div class="stat"><div class="k">전체 계약</div><div class="v" id="statTotal">0</div></div>
+        <div class="stat"><div class="k">오늘 등록</div><div class="v" id="statToday">0</div></div>
+        <div class="stat"><div class="k">표시 목록</div><div class="v" id="statFiltered">0</div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 style="margin:0 0 12px;">저장된 계약 목록</h2>
+      <div class="toolbar">
+        <input id="contractSearchInput" placeholder="고객명, 연락처, 주소, 제품, 계약번호 검색" />
+        <button class="btn outline" id="refreshBtn" type="button">원격 새로고침</button>
+        <button class="btn secondary" id="exportCsvBtn" type="button">CSV 내보내기</button>
+      </div>
+      <div class="list-meta" id="listMeta">-</div>
+      <div id="contractList" class="item-list"></div>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'aikongkong_contract_as_v2';
+    const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
+    const SHEETS_API_URL_KEY = 'aikongkong_sheets_api_url';
+    const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec';
+    const REMOTE_FETCH_TIMEOUT_MS = 20000;
+    const RECENT_CONTRACT_LIMIT = 10;
+
+    const seedData = {
+      contracts: [{
+        id: 'sample_contract_1',
+        contractNo: 'C20260308001',
+        customerName: '홍길동',
+        phone: '01012345678',
+        address: '청주시 흥덕구 예시로 101',
+        product: '스킨퓨어 1200',
+        color: '크림베이지',
+        totalPrice: '2450000',
+        installDate: '2026-03-20',
+        installRound: '1차 후 2차 예정',
+        discountTypes: '공동구매, 베페할인',
+        discountEtc: '',
+        installNote: '냉장고 앞 미시공, 2차 마감 예정',
+        signatureImage: '',
+        installerName: '정지오',
+        installerSignatureImage: '',
+        createdAt: new Date().toISOString()
+      }],
+      asRequests: []
+    };
+
+    const state = {
+      contracts: [],
+      asRequests: [],
+      source: 'local',
+      currentAdminName: '',
+      currentAdminPhone: '',
+      filterKeyword: ''
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
+    const normalizeText = (v) => String(v || '').trim().toLowerCase();
+
+    function getContractSortTime(item) {
+      const candidates = [item?.createdAt, item?.updatedAt, item?.installDate];
+      for (const value of candidates) {
+        const d = new Date(value);
+        const t = d.getTime();
+        if (!Number.isNaN(t)) return t;
+      }
+      return 0;
+    }
+
+    function getMyInstallerContractsSorted() {
+      const installerName = normalizeText(state.currentAdminName);
+      const installerPhone = toDigits(state.currentAdminPhone || '');
+      if (!installerName && !installerPhone) return [];
+
+      return [...state.contracts]
+        .filter((item) => {
+          const itemInstallerPhone = toDigits(item?.installerPhone);
+          const itemInstallerName = normalizeText(item?.installerName);
+
+          if (installerPhone) {
+            if (itemInstallerPhone) return itemInstallerPhone === installerPhone;
+            if (installerName) return itemInstallerName === installerName;
+            return false;
+          }
+
+          return installerName && itemInstallerName === installerName;
+        })
+        .sort((a, b) => getContractSortTime(b) - getContractSortTime(a));
+    }
+
+    function todayString() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function showStatus(text, type = '') {
+      const el = $('#topNotice');
+      el.className = `notice ${type}`.trim();
+      el.textContent = text;
+    }
+
+    function setSourceChip() {
+      const el = $('#sourceChip');
+      if (state.source === 'sheets') {
+        el.textContent = '데이터 소스: Google Sheets';
+        el.className = 'chip success';
+      } else {
+        el.textContent = '데이터 소스: Local Backup';
+        el.className = 'chip';
+      }
+    }
+
+    function getSheetsApiUrl() {
+      const fromLocal = String(localStorage.getItem(SHEETS_API_URL_KEY) || '').trim();
+      return fromLocal || DEFAULT_SHEETS_API_URL;
+    }
+
+    async function fetchWithTimeout(url, options = {}, timeoutMs = REMOTE_FETCH_TIMEOUT_MS) {
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      let timeoutId = 0;
+      const timeoutMessage = `연동 대기시간 초과 (${Math.ceil(timeoutMs / 1000)}초)`;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          if (controller) controller.abort();
+          reject(new Error(timeoutMessage));
+        }, timeoutMs);
+      });
+
+      try {
+        return await Promise.race([
+          fetch(url, {
+            ...options,
+            ...(controller ? { signal: controller.signal } : {})
+          }).catch((err) => {
+            if (controller && err?.name === 'AbortError') {
+              throw new Error(timeoutMessage);
+            }
+            throw err;
+          }),
+          timeoutPromise
+        ]);
+      } finally {
+        if (timeoutId) window.clearTimeout(timeoutId);
+      }
+    }
+
+    function saveLocal() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ contracts: state.contracts, asRequests: state.asRequests }));
+    }
+
+    function loadLocal() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        state.contracts = [...seedData.contracts];
+        state.asRequests = [...seedData.asRequests];
+        saveLocal();
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      state.contracts = parsed.contracts || [];
+      state.asRequests = parsed.asRequests || [];
+    }
+
+    function getLocalContractsBackup() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed.contracts) ? parsed.contracts : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    const CONTRACT_FALLBACK_KEYS = [
+      'contractNo',
+      'customerName',
+      'phone',
+      'address',
+      'product',
+      'productItems',
+      'color',
+      'totalPrice',
+      'paymentMethod',
+      'paymentSummary',
+      'installDate',
+      'docYear',
+      'docMonth',
+      'docDay',
+      'installRound',
+      'discountTypes',
+      'discountEtc',
+      'installNote',
+      'customerSignName',
+      'installerSignName',
+      'signatureImage',
+      'installerName',
+      'installerPhone',
+      'installerAddress',
+      'installerSignatureImage',
+      'createdAt',
+      'updatedAt'
+    ];
+
+    function hasContractValue(value) {
+      if (value == null) return false;
+      if (typeof value === 'string') return value.trim() !== '';
+      return true;
+    }
+
+    function mergeContractRecordWithLocal(remoteItem, localItem) {
+      const merged = { ...(remoteItem || {}) };
+      if (!localItem) return merged;
+
+      CONTRACT_FALLBACK_KEYS.forEach((key) => {
+        if (!hasContractValue(merged[key]) && hasContractValue(localItem[key])) {
+          merged[key] = localItem[key];
+        }
+      });
+
+      ['phone', 'installerPhone'].forEach((key) => {
+        const mergedDigits = toDigits(merged[key]);
+        const localDigits = toDigits(localItem[key]);
+        if (localDigits.length > mergedDigits.length) {
+          merged[key] = localItem[key];
+        }
+      });
+
+      return merged;
+    }
+
+    function mergeContractFieldsFromLocal(remoteContracts) {
+      const localMap = new Map(
+        getLocalContractsBackup()
+          .filter((item) => item && item.id)
+          .map((item) => [String(item.id), item])
+      );
+
+      const mergedList = (remoteContracts || []).map((item) => {
+        const local = localMap.get(String(item.id || ''));
+        const merged = mergeContractRecordWithLocal(item, local);
+        localMap.delete(String(item.id || ''));
+        return merged;
+      });
+
+      localMap.forEach((item) => mergedList.push(item));
+      return mergedList;
+    }
+
+    async function loadRemote() {
+      const apiUrl = getSheetsApiUrl();
+      if (!apiUrl) throw new Error('구글시트 API URL이 비어 있습니다.');
+
+      const sep = apiUrl.includes('?') ? '&' : '?';
+      const res = await fetchWithTimeout(`${apiUrl}${sep}action=load&t=${Date.now()}`, {
+        method: 'GET',
+        cache: 'no-store'
+      });
+      if (!res.ok) throw new Error(`연동 서버 응답 오류 (${res.status})`);
+
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || '데이터 로드 실패');
+
+      const remoteContracts = Array.isArray(data.contracts) ? data.contracts : [];
+      state.contracts = mergeContractFieldsFromLocal(remoteContracts);
+      state.asRequests = Array.isArray(data.asRequests) ? data.asRequests : [];
+      state.source = 'sheets';
+      saveLocal();
+    }
+
+    async function loadData() {
+      const apiUrl = getSheetsApiUrl();
+      if (apiUrl) {
+        try {
+          await loadRemote();
+          showStatus('Google Sheets 연결됨: 원격 데이터를 사용 중입니다.', 'success');
+          setSourceChip();
+          return;
+        } catch (err) {
+          loadLocal();
+          state.source = 'local';
+          showStatus(`구글시트 연결 실패, 로컬 백업 사용 중: ${err.message}`, 'error');
+          setSourceChip();
+          return;
+        }
+      }
+
+      loadLocal();
+      state.source = 'local';
+      showStatus('구글시트 URL 미설정: 현재 로컬 데이터만 사용 중입니다.');
+      setSourceChip();
+    }
+
+    function copyText(value, label) {
+      const text = String(value || '');
+      if (!text) return;
+      navigator.clipboard.writeText(text)
+        .then(() => showStatus(`${label} 복사 완료`, 'success'))
+        .catch(() => showStatus(`${label} 복사 실패`, 'error'));
+    }
+
+    function csvEscape(value) {
+      const text = String(value == null ? '' : value);
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+
+    function filterContracts() {
+      const keyword = normalizeText(state.filterKeyword);
+      const items = getMyInstallerContractsSorted();
+      if (!keyword) return items.slice(0, RECENT_CONTRACT_LIMIT);
+
+      return items.filter((item) => {
+        const target = [
+          item.contractNo,
+          item.customerName,
+          item.phone,
+          item.address,
+          item.product,
+          item.color,
+          item.paymentMethod,
+          item.paymentSummary,
+          item.installRound,
+          item.discountTypes,
+          item.discountEtc,
+          item.installNote,
+          item.installerName,
+          item.installerPhone
+        ].join(' ').toLowerCase();
+        return target.includes(keyword);
+      });
+    }
+
+    function renderStats(filteredItems) {
+      const today = todayString();
+      const myContracts = getMyInstallerContractsSorted();
+      const todayCount = myContracts.filter((item) => String(item.createdAt || '').startsWith(today)).length;
+      $('#statTotal').textContent = String(myContracts.length);
+      $('#statToday').textContent = String(todayCount);
+      $('#statFiltered').textContent = String(filteredItems.length);
+    }
+
+    function renderContractList() {
+      const el = $('#contractList');
+      const items = filterContracts();
+      renderStats(items);
+      const myTotal = getMyInstallerContractsSorted().length;
+      const hasKeyword = Boolean(normalizeText(state.filterKeyword));
+      $('#listMeta').textContent = hasKeyword
+        ? `내 계약 ${myTotal}건 중 검색결과 ${items.length}건 (과거 내역 포함)`
+        : `내 계약 ${myTotal}건 중 최신 ${Math.min(RECENT_CONTRACT_LIMIT, items.length)}건 표시`;
+
+      if (!items.length) {
+        el.innerHTML = hasKeyword
+          ? '<div class="notice">검색 조건에 맞는 내 계약이 없습니다.</div>'
+          : '<div class="notice">표시할 최근 계약이 없습니다.</div>';
+        return;
+      }
+
+      el.innerHTML = items.map((c) => {
+        const signHtml = [
+          c.signatureImage
+            ? `<div class="muted" style="margin-top:10px;">고객 전자서명</div><img class="thumb-sign" src="${c.signatureImage}" alt="고객전자서명" />`
+            : '',
+          c.installerSignatureImage
+            ? `<div class="muted" style="margin-top:10px;">시공자(${c.installerName || '-'}) 서명</div><img class="thumb-sign" src="${c.installerSignatureImage}" alt="시공자서명" />`
+            : ''
+        ].join('');
+
+        return `
+          <div class="item">
+            <div class="item-title">${c.customerName || '-'}</div>
+            <div class="muted">${c.contractNo || '-'} · ${c.phone || '-'}</div>
+            <div class="item-line">주소: ${c.address || '-'}<br>제품: ${c.product || '-'} / ${c.color || '-'}<br>결제: ${c.paymentSummary || [c.paymentMethod || '', (c.totalPrice ? Number(String(c.totalPrice).replace(/[^0-9]/g, '') || 0).toLocaleString() + '원' : '')].filter(Boolean).join(' / ') || '-'}<br>시공일: ${c.installDate || '-'} / ${c.installRound || '-'}<br>할인: ${c.discountTypes || '-'}${c.discountEtc ? ' / ' + c.discountEtc : ''}<br>시공자: ${c.installerName || '-'}</div>
+            <div class="item-line" style="margin-top:8px;">시공 특이사항: ${c.installNote || '-'}</div>
+            ${signHtml}
+            <div class="actions" style="margin-top:10px;">
+              <button class="btn tiny outline" type="button" data-copy="${(c.contractNo || '').replace(/"/g, '&quot;')}" data-copy-label="계약번호">계약번호 복사</button>
+              <button class="btn tiny outline" type="button" data-copy="${(c.phone || '').replace(/"/g, '&quot;')}" data-copy-label="연락처">연락처 복사</button>
+              <a class="btn tiny secondary" href="./admin.html?view=contract&edit=${encodeURIComponent(c.id)}">불러와 수정</a>
+              <a class="btn tiny secondary" href="./contract.html?id=${encodeURIComponent(c.id)}" target="_blank" rel="noopener">계약서 보기</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function exportContractsCsv() {
+      const keyword = normalizeText(state.filterKeyword);
+      const rows = keyword ? filterContracts() : getMyInstallerContractsSorted();
+      if (!rows.length) {
+        showStatus('내보낼 계약 데이터가 없습니다.', 'error');
+        return;
+      }
+
+      const headers = ['계약번호', '고객명', '연락처', '주소', '제품', '색상', '결제방식', '결제요약', '총금액', '시공일자', '시공차수', '할인유형', '기타할인', '시공특이사항', '시공자명', '등록일'];
+      const lines = [headers.map(csvEscape).join(',')];
+
+      rows.forEach((item) => {
+        lines.push([
+          item.contractNo,
+          item.customerName,
+          item.phone,
+          item.address,
+          item.product,
+          item.color,
+          item.paymentMethod,
+          item.paymentSummary,
+          item.totalPrice,
+          item.installDate,
+          item.installRound,
+          item.discountTypes,
+          item.discountEtc,
+          item.installNote,
+          item.installerName,
+          item.createdAt
+        ].map(csvEscape).join(','));
+      });
+
+      const csv = `\uFEFF${lines.join('\n')}`;
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `aikongkong_contracts_${todayString()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showStatus('CSV 파일을 내보냈습니다.', 'success');
+    }
+
+    function loadEntrySession() {
+      try {
+        const raw = sessionStorage.getItem(ENTRY_SESSION_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function hasAdminSession(entry) {
+      if (!entry || entry.role !== 'admin') return false;
+      const adminId = String(entry.adminId || '').trim();
+      const phone = toDigits(entry.phone);
+      return Boolean(adminId || phone);
+    }
+
+    function guardAdminAccess() {
+      const entry = loadEntrySession();
+      if (!hasAdminSession(entry)) {
+        alert('관리자 정보로 로그인 후 접근해주세요.');
+        location.replace('./index.html');
+        return null;
+      }
+      return entry;
+    }
+
+    function enableDevAutoReload() {
+      if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+      if (!(location.hostname === 'localhost' || location.hostname === '127.0.0.1')) return;
+
+      let lastModified = null;
+      setInterval(async () => {
+        try {
+          const res = await fetch(location.href.split('#')[0], { method: 'HEAD', cache: 'no-store' });
+          const next = res.headers.get('Last-Modified');
+          if (!next) return;
+          if (lastModified && next !== lastModified) location.reload();
+          lastModified = next;
+        } catch (_) {}
+      }, 1200);
+    }
+
+    $('#contractSearchInput').addEventListener('input', (e) => {
+      state.filterKeyword = e.target.value || '';
+      renderContractList();
+    });
+
+    $('#refreshBtn').addEventListener('click', async () => {
+      await loadData();
+      renderContractList();
+      showStatus('데이터를 새로고침했습니다.', 'success');
+    });
+
+    $('#exportCsvBtn').addEventListener('click', exportContractsCsv);
+
+    $('#contractList').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-copy]');
+      if (!btn) return;
+      copyText(btn.dataset.copy, btn.dataset.copyLabel || '텍스트');
+    });
+
+    (async function init() {
+      const entry = guardAdminAccess();
+      if (!entry) return;
+
+      state.currentAdminName = String(entry.name || '').trim();
+      state.currentAdminPhone = toDigits(entry.phone);
+      $('#heroTitle').textContent = `${entry.name} 님 계약목록`;
+      if (!String(localStorage.getItem(SHEETS_API_URL_KEY) || '').trim()) {
+        localStorage.setItem(SHEETS_API_URL_KEY, DEFAULT_SHEETS_API_URL);
+      }
+
+      await loadData();
+      renderContractList();
+      enableDevAutoReload();
+    })();
+  </script>
+</body>
+</html>
+

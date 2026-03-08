@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>아이콩콩 시공계약서</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "SUIT", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      color: #17212d;
+      background:
+        radial-gradient(900px 320px at 0% -20%, rgba(72, 183, 182, 0.14) 0%, rgba(72, 183, 182, 0) 58%),
+        linear-gradient(180deg, #ecf2f9 0%, #f5f8fc 100%);
+    }
+
+    .container {
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 16px 14px 50px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      color: #637187;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 6px 10px;
+      background: #e3ecf9;
+      color: #1f3f78;
+    }
+
+    .link {
+      color: #2f9191;
+      text-decoration: none;
+      font-weight: 800;
+    }
+    .link:hover { text-decoration: underline; }
+
+    .notice {
+      border-radius: 12px;
+      border: 1px solid #d9e4f4;
+      background: #f6faff;
+      color: #5b6b80;
+      padding: 11px 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .notice.error {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      border: 1px solid #d5dfed;
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+      padding: 14px;
+    }
+
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #111827;
+      padding-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: #435469;
+      font-weight: 700;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 10px 14px;
+      transition: transform 0.15s ease, filter 0.2s ease;
+    }
+    .btn.primary {
+      background: linear-gradient(180deg, #48b7b6 0%, #2f9191 100%);
+      color: #fff;
+      box-shadow: 0 8px 14px rgba(47, 145, 145, 0.22);
+    }
+    .btn.secondary {
+      background: #e6f5f4;
+      color: #236f6f;
+    }
+    .btn:hover { filter: brightness(1.02); }
+    .btn:active { transform: translateY(1px); }
+
+    .paper {
+      border: 10px solid #3fa9a7;
+      border-radius: 4px;
+      background: #fff;
+      padding: 16px 16px 14px;
+    }
+
+    .brand-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    .brand-img {
+      width: min(100%, 500px);
+      max-height: 150px;
+      height: auto;
+      display: block;
+      object-fit: contain;
+    }
+
+    .line-block {
+      border-top: 3px solid #111827;
+      margin-top: 4px;
+    }
+
+    .line-row {
+      display: flex;
+      align-items: center;
+      min-height: 44px;
+      border-bottom: 1px solid #111827;
+      gap: 8px;
+      padding: 5px 8px;
+    }
+
+    .line-label {
+      min-width: 170px;
+      font-size: 17px;
+      font-weight: 900;
+      color: #111827;
+    }
+
+    .line-value {
+      flex: 1;
+      font-size: 17px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.28;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .extra {
+      margin-top: 4px;
+      background: transparent;
+      padding: 4px 0 6px;
+    }
+
+    .extra-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px 16px;
+    }
+
+    .extra-item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: baseline;
+      column-gap: 6px;
+      background: transparent;
+      padding: 0;
+      min-height: 0;
+    }
+
+    .extra-item.full { grid-column: 1 / -1; }
+
+    .extra-k {
+      color: #435469;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 0;
+    }
+
+    .extra-v {
+      color: #0f172a;
+      font-size: 14px;
+      line-height: 1.4;
+      font-weight: 800;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .terms {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .policy-group + .policy-group {
+      margin-top: 14px;
+    }
+
+    .term-col h3 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      font-weight: 900;
+      color: #111827;
+      letter-spacing: -0.02em;
+    }
+
+    .policy-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .policy-item {
+      display: grid;
+      grid-template-columns: 14px minmax(0, 1fr);
+      align-items: start;
+      column-gap: 6px;
+    }
+
+    .policy-check {
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 900;
+      color: #111827;
+    }
+
+    .policy-text {
+      margin: 0;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #1f2937;
+      font-weight: 800;
+      word-break: keep-all;
+    }
+
+    .sign-area {
+      margin-top: 10px;
+      border-top: 2px solid #111827;
+      padding-top: 8px;
+      margin-left: auto;
+      width: 390px;
+      max-width: 100%;
+    }
+
+    .date-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-weight: 900;
+      color: #111827;
+    }
+
+    .date-number {
+      display: inline-block;
+      width: 74px;
+      text-align: center;
+      border-bottom: 1px solid #111827;
+      line-height: 1.2;
+      padding-bottom: 1px;
+      font-size: 23px;
+    }
+
+    .sign-row {
+      display: grid;
+      grid-template-columns: 68px 1fr auto 92px;
+      align-items: center;
+      gap: 8px;
+      margin-top: 5px;
+    }
+
+    .sign-label {
+      text-align: right;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .sign-name {
+      border-bottom: 1px solid #111827;
+      min-height: 26px;
+      font-size: 19px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      padding: 0 2px 1px;
+    }
+
+    .sign-mark {
+      font-size: 16px;
+      font-weight: 900;
+      color: #111827;
+    }
+
+    .sign-img {
+      width: 90px;
+      height: 32px;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+      opacity: 0;
+    }
+
+    .sign-img.active { opacity: 1; }
+
+    @media (max-width: 900px) {
+      .line-label { min-width: 110px; font-size: 14px; }
+      .line-value { font-size: 14px; }
+      .terms { grid-template-columns: 1fr; }
+      .extra-grid { grid-template-columns: 1fr; }
+      .sign-row { grid-template-columns: 66px 1fr auto 84px; }
+      .sign-label { font-size: 14px; }
+      .sign-name { font-size: 14px; }
+      .date-number { font-size: 13px; width: 66px; }
+      .paper { border-width: 7px; padding: 12px; }
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 6mm;
+    }
+
+    @media print {
+      html, body {
+        width: 210mm;
+        height: 297mm;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      body { background: #fff; }
+      .topbar, .notice, .actions { display: none !important; }
+      .container {
+        width: 198mm;
+        max-width: none;
+        margin: 0 auto;
+        padding: 0;
+      }
+      .card { box-shadow: none; border: 0; border-radius: 0; padding: 0; }
+      .header-row { display: none !important; }
+
+      .paper {
+        border: 2.2mm solid #3fa9a7;
+        border-radius: 0;
+        padding: 4mm 4mm 3mm;
+        page-break-inside: avoid;
+      }
+
+      .brand-wrap { margin-bottom: 1.6mm; }
+      .brand-img {
+        max-width: 104mm;
+        max-height: 25mm;
+      }
+
+      .line-block { border-top-width: 0.5mm; margin-top: 1mm; }
+      .line-row {
+        min-height: 8.4mm;
+        padding: 1mm 1.5mm;
+        border-bottom-width: 0.26mm;
+      }
+      .line-label {
+        min-width: 34mm;
+        font-size: 4mm;
+      }
+      .line-value {
+        font-size: 4mm;
+        line-height: 1.2;
+      }
+
+      .extra {
+        margin-top: 1.2mm;
+        padding: 0.8mm 0 1mm;
+      }
+      .extra-grid { gap: 0.8mm 2.4mm; }
+      .extra-item {
+        grid-template-columns: auto minmax(0, 1fr);
+        column-gap: 1mm;
+        padding: 0;
+        min-height: 0;
+      }
+      .extra-k { font-size: 2.75mm; margin-bottom: 0; }
+      .extra-v { font-size: 3mm; line-height: 1.3; }
+
+      .terms {
+        margin-top: 2mm;
+        gap: 3mm;
+      }
+      .policy-group + .policy-group { margin-top: 2.2mm; }
+      .term-col h3 {
+        font-size: 4.2mm;
+        margin-bottom: 1mm;
+      }
+      .policy-list { gap: 0.9mm; }
+      .policy-item {
+        grid-template-columns: 3.2mm minmax(0, 1fr);
+        column-gap: 1mm;
+      }
+      .policy-check,
+      .policy-text {
+        font-size: 2.95mm;
+        line-height: 1.34;
+      }
+
+      .sign-area {
+        margin-top: 2.2mm;
+        width: 82mm;
+        border-top-width: 0.4mm;
+        padding-top: 1.6mm;
+      }
+      .date-row {
+        gap: 2mm;
+        margin-bottom: 1.2mm;
+        font-size: 3.2mm;
+      }
+      .date-number {
+        width: 15mm;
+        font-size: 4.9mm;
+        line-height: 1.05;
+        padding-bottom: 0.5mm;
+        border-bottom-width: 0.26mm;
+      }
+      .sign-row {
+        grid-template-columns: 15mm 1fr auto 18mm;
+        gap: 1.8mm;
+        margin-top: 1mm;
+      }
+      .sign-label {
+        font-size: 4.6mm;
+      }
+      .sign-name {
+        font-size: 4.6mm;
+        min-height: 6.3mm;
+        padding: 0 0.6mm 0.5mm;
+        border-bottom-width: 0.26mm;
+      }
+      .sign-mark { font-size: 3.6mm; }
+      .sign-img {
+        width: 17mm;
+        height: 6.2mm;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <h1 class="title">아이콩콩 시공계약서</h1>
+        <p class="sub">저장된 계약 내용을 고객 확인용 양식으로 표시합니다.</p>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <span id="sourceBadge" class="badge">데이터 확인 중</span>
+        <a id="backLink" class="link" href="./index.html">처음 화면</a>
+      </div>
+    </div>
+
+    <div id="topNotice" class="notice">계약 정보를 불러오는 중입니다.</div>
+
+    <section class="card">
+      <div class="header-row">
+        <div class="meta">
+          <span id="metaContractNo">계약번호 -</span>
+          <span id="metaCreatedAt">작성일 -</span>
+        </div>
+        <div class="actions">
+          <button id="printBtn" class="btn primary" type="button">인쇄</button>
+          <button id="refreshBtn" class="btn secondary" type="button">새로고침</button>
+        </div>
+      </div>
+
+      <article class="paper">
+        <div class="brand-wrap">
+          <img class="brand-img" src="./시공계약아이콘.png" alt="아이콩콩매트" />
+        </div>
+
+        <section class="line-block">
+          <div class="line-row"><div class="line-label">고객명</div><div class="line-value" id="lineCustomerName">-</div></div>
+          <div class="line-row"><div class="line-label">주 소</div><div class="line-value" id="lineAddress">-</div></div>
+          <div class="line-row"><div class="line-label">연락처</div><div class="line-value" id="linePhone">-</div></div>
+          <div class="line-row"><div class="line-label">품명/사용수량</div><div class="line-value" id="lineProduct">-</div></div>
+          <div class="line-row"><div class="line-label">결제방식 & 결제금액</div><div class="line-value" id="linePayment">-</div></div>
+        </section>
+
+        <section class="extra">
+          <div class="extra-grid">
+            <div class="extra-item"><div class="extra-k">색상</div><div class="extra-v" id="extraColor">-</div></div>
+            <div class="extra-item"><div class="extra-k">시공일자</div><div class="extra-v" id="extraInstallDate">-</div></div>
+            <div class="extra-item"><div class="extra-k">시공 차수</div><div class="extra-v" id="extraInstallRound">-</div></div>
+            <div class="extra-item full"><div class="extra-k">할인 유형</div><div class="extra-v" id="extraDiscountTypes">-</div></div>
+            <div class="extra-item full"><div class="extra-k">기타 할인 상세</div><div class="extra-v" id="extraDiscountEtc">-</div></div>
+            <div class="extra-item full"><div class="extra-k">시공 특이사항</div><div class="extra-v" id="extraInstallNote">-</div></div>
+          </div>
+        </section>
+
+        <section class="terms">
+          <div class="term-col">
+            <div class="policy-group">
+              <h3>교환 / 반품안내</h3>
+              <div class="policy-list">
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">아이콩콩매트 고객센터(또는 해당 구매처 고객센터) 접수 후, 교환 및 반품이 진행됩니다. 타 택배 이용 시 발생되는 추가금 및 분실 건은 구매자 부담입니다.</p>
+                </div>
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">교환 및 반품은 제품을 수령하신 후 7일 이내 교환/반품 의사를 고객센터로 접수해주셔야 합니다.</p>
+                </div>
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">제품 하자 교환은 3개월 안에 가능하시며 고객 부주의로 인한 교환건은 제품구매를 하셔야 합니다.</p>
+                </div>
+              </div>
+            </div>
+            <div class="policy-group">
+              <h3>교환 / 반품이 불가한 경우</h3>
+              <div class="policy-list">
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">제품 수령 후 7일 이내 교환/반품 의사를 전달하지 않은 경우(전달방법: 해당 구매처 고객센터)</p>
+                </div>
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">시공 제품은 단순 변심으로 인한 교환/반품이 절대 불가능합니다.</p>
+                </div>
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">할인제품/행사제품/사전에 교환 및 반품 불가가 고지된 제품</p>
+                </div>
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">교환 및 반품 시 해당 제품을 훼손하거나 사용하지 않았어야 하며 최초 구매(혹은 수령)했을 당시와 동일한 상태를 유지해야 합니다.</p>
+                </div>
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">구매자의 부주의로 인하여 제품이 손상되었거나 사용으로 인한 오염 등 제품의 가치가 하락한 경우, 수령일로부터 7일 이내라도 반품이 절대 불가합니다.</p>
+                </div>
+              </div>
+            </div>
+            <div class="policy-group">
+              <h3>시공 전후 사진촬영</h3>
+              <div class="policy-list">
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">시공 전후 사진촬영을 통해 시공 결과물에 대한 정보를 아이콩콩 본사에서 보유하게 되며, 이를 통해 추후 A/S 시 보다 원활한 정보확인이 이루어집니다. 해당 사진은 아이콩콩 홈페이지 시공사례 및 광고자료로 활용될 수 있으며 특정인을 알아볼 수 있는 경우 모자이크 처리를 통해 고객안심을 보장합니다.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="term-col">
+            <div class="policy-group">
+              <h3>A/S 신청 안내</h3>
+              <div class="policy-list">
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">A/S가 필요한 부분의 사진과 매트 앞뒷면을 찍어서 아이콩콩매트 카카오채널 또는 담당 시공기사에게 접수해 주세요. 계약자 성명, 번호, 주소, 시공일자, 제품종류를 꼭 적어주세요.</p>
+                </div>
+              </div>
+            </div>
+            <div class="policy-group">
+              <h3>A/S 및 배송비 안내</h3>
+              <div class="policy-list">
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">고객 부주의로 인한 A/S 발생은 5만원의 출장비가 청구됩니다. 교환/반품 시 왕복 배송비 14,000원은 계좌 입금이며 A/S, 배송비 모두 계좌이체를 이용하셔야 합니다. 배송비를 제품과 동봉 시 분실 위험이 있으므로 꼭 계좌 입금 부탁드립니다. 제품 사이즈 및 택배 박스 수량(박스 초과)에 따라 배송비 금액이 추가될 수 있습니다.</p>
+                </div>
+              </div>
+            </div>
+            <div class="policy-group">
+              <h3>교환/반품배송비/시공비 입금 계좌</h3>
+              <div class="policy-list">
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">배송비는 제품과 동봉 시 분실 위험이 있으므로 꼭 계좌 입금을 부탁드립니다.</p>
+                </div>
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">입금계좌: 110-615-077781 (조성운, 아이콩콩)</p>
+                </div>
+              </div>
+            </div>
+            <div class="policy-group">
+              <h3>아이콩콩매트 고객센터</h3>
+              <div class="policy-list">
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">유선상담: 1670-2659</p>
+                </div>
+                <div class="policy-item">
+                  <span class="policy-check">☑</span>
+                  <p class="policy-text">운영시간: 평일 AM09:00~PM18:00 (주말/공휴일 휴무)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sign-area">
+          <div class="date-row">
+            <span id="docYear" class="date-number">-</span><span>년</span>
+            <span id="docMonth" class="date-number">-</span><span>월</span>
+            <span id="docDay" class="date-number">-</span><span>일</span>
+          </div>
+          <div class="sign-row">
+            <div class="sign-label">고객명:</div>
+            <div class="sign-name" id="customerSignName">-</div>
+            <div class="sign-mark">(인)</div>
+            <img id="customerSignImg" class="sign-img" alt="고객 서명" />
+          </div>
+          <div class="sign-row">
+            <div class="sign-label">시공자:</div>
+            <div class="sign-name" id="installerSignName">-</div>
+            <div class="sign-mark">(인)</div>
+            <img id="installerSignImg" class="sign-img" alt="시공자 서명" />
+          </div>
+        </section>
+      </article>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'aikongkong_contract_as_v2';
+    const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
+    const SHEETS_API_URL_KEY = 'aikongkong_sheets_api_url';
+    const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec';
+    const REMOTE_FETCH_TIMEOUT_MS = 20000;
+
+    const state = { contracts: [], asRequests: [], source: 'local' };
+
+    const $ = (s) => document.querySelector(s);
+    const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
+
+    function getSheetsApiUrl() {
+      const fromLocal = String(localStorage.getItem(SHEETS_API_URL_KEY) || '').trim();
+      return fromLocal || DEFAULT_SHEETS_API_URL;
+    }
+
+    async function fetchWithTimeout(url, options = {}, timeoutMs = REMOTE_FETCH_TIMEOUT_MS) {
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      let timeoutId = 0;
+      const timeoutMessage = `연동 대기시간 초과 (${Math.ceil(timeoutMs / 1000)}초)`;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          if (controller) controller.abort();
+          reject(new Error(timeoutMessage));
+        }, timeoutMs);
+      });
+
+      try {
+        return await Promise.race([
+          fetch(url, {
+            ...options,
+            ...(controller ? { signal: controller.signal } : {})
+          }).catch((err) => {
+            if (controller && err?.name === 'AbortError') {
+              throw new Error(timeoutMessage);
+            }
+            throw err;
+          }),
+          timeoutPromise
+        ]);
+      } finally {
+        if (timeoutId) window.clearTimeout(timeoutId);
+      }
+    }
+
+    function saveLocal() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ contracts: state.contracts, asRequests: state.asRequests }));
+    }
+
+    function loadLocal() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        state.contracts = [];
+        state.asRequests = [];
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      state.contracts = parsed.contracts || [];
+      state.asRequests = parsed.asRequests || [];
+    }
+
+    function getLocalContractsBackup() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed.contracts) ? parsed.contracts : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    const CONTRACT_FALLBACK_KEYS = [
+      'contractNo',
+      'customerName',
+      'phone',
+      'address',
+      'product',
+      'productItems',
+      'color',
+      'totalPrice',
+      'paymentMethod',
+      'paymentSummary',
+      'installDate',
+      'docYear',
+      'docMonth',
+      'docDay',
+      'installRound',
+      'discountTypes',
+      'discountEtc',
+      'installNote',
+      'customerSignName',
+      'installerSignName',
+      'signatureImage',
+      'installerName',
+      'installerPhone',
+      'installerAddress',
+      'installerSignatureImage',
+      'createdAt',
+      'updatedAt'
+    ];
+
+    function hasContractValue(value) {
+      if (value == null) return false;
+      if (typeof value === 'string') return value.trim() !== '';
+      return true;
+    }
+
+    function mergeContractRecordWithLocal(remoteItem, localItem) {
+      const merged = { ...(remoteItem || {}) };
+      if (!localItem) return merged;
+
+      CONTRACT_FALLBACK_KEYS.forEach((key) => {
+        if (!hasContractValue(merged[key]) && hasContractValue(localItem[key])) {
+          merged[key] = localItem[key];
+        }
+      });
+
+      ['phone', 'installerPhone'].forEach((key) => {
+        const mergedDigits = toDigits(merged[key]);
+        const localDigits = toDigits(localItem[key]);
+        if (localDigits.length > mergedDigits.length) {
+          merged[key] = localItem[key];
+        }
+      });
+
+      return merged;
+    }
+
+    function mergeContractFieldsFromLocal(remoteContracts) {
+      const localMap = new Map(
+        getLocalContractsBackup()
+          .filter((item) => item && item.id)
+          .map((item) => [String(item.id), item])
+      );
+
+      const mergedList = (remoteContracts || []).map((item) => {
+        const local = localMap.get(String(item.id || ''));
+        const merged = mergeContractRecordWithLocal(item, local);
+        localMap.delete(String(item.id || ''));
+        return merged;
+      });
+
+      localMap.forEach((item) => mergedList.push(item));
+      return mergedList;
+    }
+
+    async function loadRemote() {
+      const apiUrl = getSheetsApiUrl();
+      if (!apiUrl) throw new Error('구글시트 URL이 설정되지 않았습니다.');
+      const sep = apiUrl.includes('?') ? '&' : '?';
+      const res = await fetchWithTimeout(`${apiUrl}${sep}action=load&t=${Date.now()}`, {
+        method: 'GET',
+        cache: 'no-store'
+      });
+      if (!res.ok) throw new Error(`연동 서버 오류 (${res.status})`);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || '구글시트 데이터 로드 실패');
+      const remoteContracts = Array.isArray(data.contracts) ? data.contracts : [];
+      state.contracts = mergeContractFieldsFromLocal(remoteContracts);
+      state.asRequests = Array.isArray(data.asRequests) ? data.asRequests : [];
+      state.source = 'sheets';
+      saveLocal();
+    }
+
+    async function loadData() {
+      const apiUrl = getSheetsApiUrl();
+      if (apiUrl) {
+        try {
+          await loadRemote();
+          return;
+        } catch (_) {
+          loadLocal();
+          state.source = 'local';
+          return;
+        }
+      }
+      loadLocal();
+      state.source = 'local';
+    }
+
+    function loadEntrySession() {
+      try {
+        const raw = sessionStorage.getItem(ENTRY_SESSION_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function getQueryContractId() {
+      const qs = new URLSearchParams(location.search);
+      return qs.get('id') || '';
+    }
+
+    function setTopState(ok, text) {
+      const el = $('#topNotice');
+      el.className = `notice ${ok ? '' : 'error'}`.trim();
+      el.textContent = text;
+      $('#sourceBadge').textContent = state.source === 'sheets' ? 'Google Sheets' : 'Local Backup';
+    }
+
+    function formatDisplayDate(value) {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return value || '-';
+      return d.toLocaleString('ko-KR');
+    }
+
+    function formatDateOnly(value) {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return value || '-';
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function parseDateParts(contract) {
+      const y = String(contract.docYear || '').trim();
+      const m = String(contract.docMonth || '').trim();
+      const d = String(contract.docDay || '').trim();
+      if (y && m && d) return { y, m, d };
+
+      const fromInstall = new Date(contract.installDate || '');
+      if (!Number.isNaN(fromInstall.getTime())) {
+        return {
+          y: String(fromInstall.getFullYear()),
+          m: String(fromInstall.getMonth() + 1),
+          d: String(fromInstall.getDate())
+        };
+      }
+
+      const fromCreate = new Date(contract.createdAt || '');
+      if (!Number.isNaN(fromCreate.getTime())) {
+        return {
+          y: String(fromCreate.getFullYear()),
+          m: String(fromCreate.getMonth() + 1),
+          d: String(fromCreate.getDate())
+        };
+      }
+      return { y: '-', m: '-', d: '-' };
+    }
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = String(value || '-');
+    }
+
+    function setSign(id, dataUrl) {
+      const img = document.getElementById(id);
+      if (!img) return;
+      if (dataUrl) {
+        img.src = dataUrl;
+        img.classList.add('active');
+      } else {
+        img.removeAttribute('src');
+        img.classList.remove('active');
+      }
+    }
+
+    function formatDiscountTypes(value) {
+      const all = ['공동구매', '지인', '베페할인', '기타'];
+      const selected = String(value || '')
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+      if (!selected.length) return '☐ 공동구매   ☐ 지인   ☐ 베페할인   ☐ 기타';
+      const set = new Set(selected);
+      return all.map((label) => `${set.has(label) ? '☑' : '☐'} ${label}`).join('   ');
+    }
+
+    function renderContract(contract) {
+      const moneyDigits = String(contract.totalPrice || '').replace(/[^0-9]/g, '');
+      const moneyText = moneyDigits ? `${Number(moneyDigits).toLocaleString()}원` : '-';
+      const paymentSummary = contract.paymentSummary
+        || [contract.paymentMethod || '', moneyText].filter(Boolean).join(' / ')
+        || '-';
+      const productText = String(contract.product || '').trim();
+      const createdAt = formatDisplayDate(contract.createdAt);
+      const dateParts = parseDateParts(contract);
+
+      $('#metaContractNo').textContent = `계약번호 ${contract.contractNo || '-'}`;
+      $('#metaCreatedAt').textContent = `작성일 ${createdAt}`;
+
+      setText('lineCustomerName', contract.customerName || '-');
+      setText('lineAddress', contract.address || '-');
+      setText('linePhone', contract.phone || '-');
+      setText('lineProduct', productText || '-');
+      setText('linePayment', paymentSummary);
+
+      setText('docYear', dateParts.y);
+      setText('docMonth', dateParts.m);
+      setText('docDay', dateParts.d);
+
+      setText('customerSignName', contract.customerSignName || contract.customerName || '-');
+      setText('installerSignName', contract.installerSignName || contract.installerName || '-');
+
+      setSign('customerSignImg', contract.signatureImage || '');
+      setSign('installerSignImg', contract.installerSignatureImage || '');
+
+      setText('extraColor', contract.color || '-');
+      setText('extraInstallDate', formatDateOnly(contract.installDate));
+      setText('extraInstallRound', contract.installRound || '-');
+      setText('extraDiscountTypes', formatDiscountTypes(contract.discountTypes));
+      setText('extraDiscountEtc', contract.discountEtc || '-');
+      setText('extraInstallNote', contract.installNote || '-');
+    }
+
+    function findContract() {
+      const id = getQueryContractId();
+      if (id) {
+        const byId = state.contracts.find((x) => String(x.id) === id);
+        if (byId) return byId;
+      }
+
+      const entry = loadEntrySession();
+      if (entry && entry.role === 'customer') {
+        const bySession = state.contracts.find((x) => {
+          return (x.customerName || '').trim() === (entry.name || '').trim()
+            && toDigits(x.phone) === toDigits(entry.phone);
+        });
+        if (bySession) return bySession;
+      }
+
+      return state.contracts.length
+        ? [...state.contracts].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0]
+        : null;
+    }
+
+    function setupLinks() {
+      const entry = loadEntrySession();
+      const back = $('#backLink');
+      if (entry && entry.role === 'admin') {
+        back.href = './admin.html';
+        back.textContent = '관리자 페이지';
+      } else if (entry && entry.role === 'customer') {
+        back.href = './customer.html';
+        back.textContent = '고객 페이지';
+      }
+    }
+
+    async function refreshContract() {
+      await loadData();
+      const contract = findContract();
+      if (!contract) {
+        setTopState(false, '표시할 계약 데이터가 없습니다. 관리자 페이지에서 계약을 먼저 저장해주세요.');
+        return;
+      }
+      renderContract(contract);
+      setTopState(true, '계약 데이터가 정상 로드되었습니다. 양식 그대로 인쇄 가능합니다.');
+    }
+
+    $('#printBtn').addEventListener('click', () => window.print());
+    $('#refreshBtn').addEventListener('click', refreshContract);
+
+    function enableDevAutoReload() {
+      if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+      if (!(location.hostname === 'localhost' || location.hostname === '127.0.0.1')) return;
+      let lastModified = null;
+      setInterval(async () => {
+        try {
+          const res = await fetch(location.href.split('#')[0], { method: 'HEAD', cache: 'no-store' });
+          const next = res.headers.get('Last-Modified');
+          if (!next) return;
+          if (lastModified && next !== lastModified) location.reload();
+          lastModified = next;
+        } catch (_) {}
+      }, 1200);
+    }
+
+    (async function init() {
+      setupLinks();
+      await refreshContract();
+      enableDevAutoReload();
+    })();
+  </script>
+</body>
+</html>
