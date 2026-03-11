@@ -25,10 +25,18 @@
     .topbar {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       gap: 10px;
       flex-wrap: wrap;
       margin-bottom: 12px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .title {
@@ -62,6 +70,37 @@
       font-weight: 800;
     }
     .link:hover { text-decoration: underline; }
+
+    .top-tool {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 15px;
+      border-radius: 14px;
+      border: 1px solid #d8e3ef;
+      background: rgba(255, 255, 255, 0.92);
+      color: #1f2937;
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.05);
+      transition: transform 0.15s ease, filter 0.2s ease;
+    }
+    .top-tool:hover { filter: brightness(1.02); }
+    .top-tool:active { transform: translateY(1px); }
+    .top-tool.primary {
+      border-color: rgba(47, 145, 145, 0.18);
+      background: linear-gradient(180deg, #48b7b6 0%, #2f9191 100%);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(47, 145, 145, 0.22);
+    }
+    .top-tool.logout {
+      color: #b42318;
+      border-color: #f1c4c4;
+      background: #fff7f7;
+    }
 
     .notice {
       border-radius: 12px;
@@ -491,9 +530,10 @@
         <h1 class="title">아이콩콩 시공계약서</h1>
         <p class="sub">저장된 계약 내용을 고객 확인용 양식으로 표시합니다.</p>
       </div>
-      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <div class="top-actions">
         <span id="sourceBadge" class="badge">데이터 확인 중</span>
-        <a id="backLink" class="link" href="./index.html?manual=1">처음 화면</a>
+        <a id="backLink" class="top-tool primary" href="./index.html?manual=1">메인</a>
+        <button id="logoutBtn" class="top-tool logout" type="button">로그아웃</button>
       </div>
     </div>
 
@@ -1215,11 +1255,20 @@
       const back = $('#backLink');
       if (entry && entry.role === 'admin') {
         back.href = './admin.html';
-        back.textContent = '관리자 페이지';
+        back.textContent = '메인';
       } else if (entry && entry.role === 'customer') {
         back.href = './customer.html';
-        back.textContent = '고객 페이지';
+        back.textContent = '메인';
       }
+    }
+
+    function logoutFromContract() {
+      const entry = loadEntrySession();
+      sessionStorage.removeItem(ENTRY_SESSION_KEY);
+      if (entry?.role === 'admin') {
+        localStorage.removeItem('aikongkong_auto_admin_login_v1');
+      }
+      location.href = './index.html?manual=1';
     }
 
     function goBackFromContract() {
@@ -1253,6 +1302,7 @@
     $('#backBtn').addEventListener('click', goBackFromContract);
     $('#printBtn').addEventListener('click', () => window.print());
     $('#refreshBtn').addEventListener('click', refreshContract);
+    $('#logoutBtn').addEventListener('click', logoutFromContract);
 
     function enableDevAutoReload() {
       if (location.protocol !== 'http:' && location.protocol !== 'https:') return;

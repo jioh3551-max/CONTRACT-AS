@@ -43,6 +43,14 @@
       flex-wrap: wrap;
     }
 
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     .title {
       font-size: 34px;
       font-weight: 900;
@@ -80,6 +88,40 @@
     }
 
     .link:hover { border-bottom-color: #566070; }
+
+    .top-tool {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 15px;
+      border-radius: 14px;
+      border: 1px solid #d8e3ef;
+      background: rgba(255, 255, 255, 0.92);
+      color: #1f2937;
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.05);
+      transition: transform 0.15s ease, filter 0.2s ease;
+    }
+
+    .top-tool:hover { filter: brightness(1.02); }
+    .top-tool:active { transform: translateY(1px); }
+
+    .top-tool.primary {
+      border-color: rgba(47, 145, 145, 0.18);
+      background: linear-gradient(180deg, #48b7b6 0%, #2f9191 100%);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(47, 145, 145, 0.22);
+    }
+
+    .top-tool.logout {
+      color: #b42318;
+      border-color: #f1c4c4;
+      background: #fff7f7;
+    }
 
     .card {
       background: var(--card);
@@ -222,13 +264,17 @@
   <div class="container">
     <div class="topbar">
       <h1 class="title" id="heroTitle">저장된 계약목록</h1>
-      <span id="sourceChip" class="chip">데이터 소스: -</span>
+      <div class="top-actions">
+        <span id="sourceChip" class="chip">데이터 소스: -</span>
+        <a class="top-tool primary" href="./admin.html">메인</a>
+        <button id="logoutBtn" class="top-tool logout" type="button">로그아웃</button>
+      </div>
     </div>
 
     <div class="link-row">
-      <a class="link" href="./admin.html">관리자 페이지</a>
-      <a class="link" href="./contract.html">계약서 페이지</a>
-      <a class="link" href="./index.html">처음 화면</a>
+      <a class="link" href="./admin.html?view=contract">신규 계약 등록</a>
+      <a class="link" href="./contract.html">고객 확인용 계약서</a>
+      <a class="link" href="./admin.html?view=as">AS 신청 내역</a>
     </div>
 
     <div id="topNotice" class="notice">Google Sheets 연동 상태를 확인 중입니다.</div>
@@ -256,6 +302,7 @@
   <script>
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
+    const AUTO_ADMIN_LOGIN_KEY = 'aikongkong_auto_admin_login_v1';
     const SHEETS_API_URL_KEY = 'aikongkong_sheets_api_url';
     const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec';
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
@@ -384,15 +431,20 @@
     }
 
     function saveLocal() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ contracts: state.contracts, asRequests: state.asRequests }));
+      const contracts = Array.isArray(state.contracts) ? state.contracts : [];
+      const asRequests = Array.isArray(state.asRequests) ? state.asRequests : [];
+      if (!contracts.length && !asRequests.length) {
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ contracts, asRequests }));
     }
 
     function loadLocal() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
-        state.contracts = [...seedData.contracts];
-        state.asRequests = [...seedData.asRequests];
-        saveLocal();
+        state.contracts = [];
+        state.asRequests = [];
         return;
       }
       const parsed = JSON.parse(raw);
@@ -482,7 +534,6 @@
         return merged;
       });
 
-      localMap.forEach((item) => mergedList.push(item));
       return mergedList;
     }
 
@@ -694,6 +745,12 @@
       return entry;
     }
 
+    function logoutAdminSession() {
+      sessionStorage.removeItem(ENTRY_SESSION_KEY);
+      localStorage.removeItem(AUTO_ADMIN_LOGIN_KEY);
+      location.href = './index.html?manual=1';
+    }
+
     function enableDevAutoReload() {
       if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
       if (!(location.hostname === 'localhost' || location.hostname === '127.0.0.1')) return;
@@ -709,6 +766,8 @@
         } catch (_) {}
       }, 1200);
     }
+
+    $('#logoutBtn')?.addEventListener('click', logoutAdminSession);
 
     $('#contractSearchInput').addEventListener('input', (e) => {
       state.filterKeyword = e.target.value || '';

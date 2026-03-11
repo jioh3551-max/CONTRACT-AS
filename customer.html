@@ -47,15 +47,58 @@
 
     .brand { font-size: 22px; font-weight: 900; letter-spacing: -0.02em; }
 
+    .brand-sub {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
     .top-right {
       display: flex;
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .link { text-decoration: none; color: var(--blue); font-weight: 700; }
     .link:hover { text-decoration: underline; }
+
+    .top-tool {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 15px;
+      border-radius: 14px;
+      border: 1px solid #d9e2ef;
+      background: rgba(255, 255, 255, 0.92);
+      color: #1f2937;
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.05);
+      transition: transform 0.15s ease, filter 0.2s ease;
+    }
+
+    .top-tool:hover { filter: brightness(1.02); }
+    .top-tool:active { transform: translateY(1px); }
+
+    .top-tool.primary {
+      border-color: rgba(47, 145, 145, 0.18);
+      background: linear-gradient(180deg, #48b7b6 0%, #2f9191 100%);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(47, 145, 145, 0.22);
+    }
+
+    .top-tool.logout {
+      color: #b42318;
+      border-color: #f1c4c4;
+      background: #fff7f7;
+    }
 
     .chip {
       display: inline-flex;
@@ -399,11 +442,14 @@
 <body>
   <div class="container">
     <div class="topbar">
-      <div class="brand">고객 전용 페이지</div>
+      <div>
+        <div class="brand">고객 전용 페이지</div>
+        <div class="brand-sub">계약 확인과 A/S 접수를 한 화면에서 빠르게 확인할 수 있습니다.</div>
+      </div>
       <div class="top-right">
         <span id="sourceChip" class="chip">데이터 소스: -</span>
-        <a class="link" href="./contract.html">계약서 페이지</a>
-        <a class="link" href="./index.html?manual=1">처음 화면</a>
+        <a class="top-tool primary" href="./customer.html">메인</a>
+        <button id="topLogoutBtn" class="top-tool logout" type="button">로그아웃</button>
       </div>
     </div>
 
@@ -426,7 +472,6 @@
       <button data-page="customerAsFormPage">AS 접수</button>
       <button data-page="customerAsListPage">내 AS</button>
       <button data-page="customerMatCarePage">매트 관리방법</button>
-      <button id="logoutBtn">로그아웃</button>
     </div>
 
     <section id="customerContractPage" class="page active">
@@ -1029,7 +1074,7 @@
         titleEl.textContent = '계약 정보를 확인 중입니다.';
         subEl.textContent = '등록된 계약과 AS 접수 상태를 불러오고 있습니다.';
         badgesEl.innerHTML = '';
-        actionsEl.innerHTML = '<a class="btn outline" href="./index.html?manual=1">처음 화면으로</a>';
+        actionsEl.innerHTML = '<a class="btn outline" href="./customer.html">메인으로</a>';
         return;
       }
 
@@ -1274,7 +1319,7 @@
       btn.addEventListener('click', () => goPage(btn.dataset.page));
     });
 
-    $('#logoutBtn').addEventListener('click', () => {
+    $('#topLogoutBtn').addEventListener('click', () => {
       sessionStorage.removeItem(ENTRY_SESSION_KEY);
       location.href = './index.html?manual=1';
     });

@@ -37,9 +37,22 @@
     .topbar {
       display: flex;
       justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 0;
+    }
+
+    .header-stack {
+      min-width: 0;
+    }
+
+    .header-actions {
+      display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .hero-name {
@@ -82,6 +95,46 @@
     }
 
     .link:hover { border-bottom-color: #566070; }
+
+    .tool-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 15px;
+      border-radius: 14px;
+      border: 1px solid #d8e3ef;
+      background: rgba(255, 255, 255, 0.88);
+      color: #1f2937;
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.05);
+      transition: transform 0.15s ease, filter 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .tool-link:hover {
+      filter: brightness(1.02);
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+    }
+
+    .tool-link:active {
+      transform: translateY(1px);
+    }
+
+    .tool-link.primary {
+      border-color: rgba(47, 145, 145, 0.18);
+      background: linear-gradient(180deg, #48b7b6 0%, #2f9191 100%);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(47, 145, 145, 0.22);
+    }
+
+    .tool-link.logout {
+      color: #b42318;
+      border-color: #f1c4c4;
+      background: #fff7f7;
+    }
 
     .chip {
       display: inline-flex;
@@ -1076,15 +1129,24 @@
 </head>
 <body>
   <div class="container">
-    <div class="hero-name"><span id="heroNameText">관리자 님</span><span class="hero-arrow">›</span></div>
-    <div class="hero-meta section-gap">
-      <span id="sessionChip" class="chip success">관리자 인증됨</span>
-      <span id="sourceChip" class="chip">데이터 소스: -</span>
+    <div class="topbar section-gap">
+      <div class="header-stack">
+        <div class="hero-name"><span id="heroNameText">관리자 님</span><span class="hero-arrow">›</span></div>
+        <div class="hero-meta">
+          <span id="sessionChip" class="chip success">관리자 인증됨</span>
+          <span id="sourceChip" class="chip">데이터 소스: -</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a id="adminMainLink" class="tool-link primary" href="./admin.html">메인</a>
+        <a class="tool-link" href="./contracts.html">계약목록</a>
+        <button id="logoutBtn" class="tool-link logout" type="button">로그아웃</button>
+      </div>
     </div>
     <div class="quick-links section-gap">
-      <a class="link" href="./contracts.html">저장된 계약목록</a>
-      <a class="link" href="./contract.html">계약서 페이지</a>
-      <a class="link" href="./index.html?manual=1">처음 화면</a>
+      <a class="link" href="./contract.html">고객 확인용 계약서</a>
+      <a class="link" href="./admin.html?view=contract">신규 계약 등록</a>
+      <a class="link" href="./admin.html?view=as">AS 신청 내역</a>
     </div>
 
     <div id="apiStatus" class="notice section-gap">Google Sheets 연동 상태를 확인 중입니다.</div>
@@ -1454,6 +1516,7 @@
   <script>
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
+    const AUTO_ADMIN_LOGIN_KEY = 'aikongkong_auto_admin_login_v1';
     const SHEETS_API_URL_KEY = 'aikongkong_sheets_api_url';
     const INSTALLER_PROFILE_KEY = 'aikongkong_installer_profile_v1';
     const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec';
@@ -3472,6 +3535,12 @@
       return entry;
     }
 
+    function logoutAdminSession() {
+      sessionStorage.removeItem(ENTRY_SESSION_KEY);
+      localStorage.removeItem(AUTO_ADMIN_LOGIN_KEY);
+      location.href = './index.html?manual=1';
+    }
+
     let customerPadApi = null;
     let installerPadApi = null;
 
@@ -3772,6 +3841,8 @@
       const popup = window.open(previewUrl, '_blank', 'noopener');
       if (!popup) location.href = previewUrl;
     });
+
+    $('#logoutBtn')?.addEventListener('click', logoutAdminSession);
 
     (async function init() {
       const entry = guardAdminAccess();

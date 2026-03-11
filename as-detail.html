@@ -66,6 +66,7 @@
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .link {
@@ -75,6 +76,40 @@
     }
 
     .link:hover { text-decoration: underline; }
+
+    .top-tool {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 15px;
+      border-radius: 14px;
+      border: 1px solid #d9e2ef;
+      background: rgba(255, 255, 255, 0.92);
+      color: #1f2937;
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.05);
+      transition: transform 0.15s ease, filter 0.2s ease;
+    }
+
+    .top-tool:hover { filter: brightness(1.02); }
+    .top-tool:active { transform: translateY(1px); }
+
+    .top-tool.primary {
+      border-color: rgba(47, 145, 145, 0.18);
+      background: linear-gradient(180deg, #48b7b6 0%, #2f9191 100%);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(47, 145, 145, 0.22);
+    }
+
+    .top-tool.logout {
+      color: #b42318;
+      border-color: #f1c4c4;
+      background: #fff7f7;
+    }
 
     .chip {
       display: inline-flex;
@@ -320,7 +355,9 @@
       </div>
       <div class="top-links">
         <span id="sourceChip" class="chip">데이터 소스: -</span>
-        <a id="backToAdminLink" class="link" href="./admin.html?view=as">관리자 페이지</a>
+        <a id="backToAdminLink" class="top-tool primary" href="./admin.html">메인</a>
+        <a class="link" href="./admin.html?view=as">AS 목록</a>
+        <button id="logoutBtn" class="top-tool logout" type="button">로그아웃</button>
       </div>
     </div>
 
@@ -712,6 +749,12 @@
       return entry;
     }
 
+    function logoutAdminSession() {
+      sessionStorage.removeItem(ENTRY_SESSION_KEY);
+      localStorage.removeItem('aikongkong_auto_admin_login_v1');
+      location.href = './index.html?manual=1';
+    }
+
     function loadInstallerProfile(defaultProfile = {}) {
       let parsed = null;
       try {
@@ -966,6 +1009,7 @@
     $('#refreshBtn').addEventListener('click', async () => {
       await refreshRequest(true);
     });
+    $('#logoutBtn')?.addEventListener('click', logoutAdminSession);
 
     function enableDevAutoReload() {
       if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
