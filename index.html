@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -27,9 +27,11 @@
       font-family: "Pretendard", "SUIT", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
       background: #e2e4e7;
       color: var(--ink);
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow-y: auto;
       background:
         radial-gradient(700px 320px at 20% -10%, rgba(72, 183, 182, 0.16) 0%, rgba(72, 183, 182, 0) 58%),
         radial-gradient(700px 340px at 110% 10%, rgba(239, 157, 184, 0.16) 0%, rgba(239, 157, 184, 0) 55%),
@@ -39,41 +41,48 @@
     .phone {
       width: 100%;
       max-width: 430px;
-      min-height: 100vh;
+      min-height: 100dvh;
       background: var(--page);
       position: relative;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.5);
+      display: flex;
+      flex-direction: column;
     }
 
     .top {
       padding: 0;
       background: linear-gradient(180deg, #eff2f5 0%, #eef1f4 100%);
-      display: block;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow: hidden;
     }
 
     .hero-image {
       width: 100%;
       max-width: none;
       height: auto;
+      max-height: clamp(180px, 28dvh, 260px);
       display: block;
     }
 
     .panel {
       margin-top: -4px;
-      min-height: calc(100vh - 220px);
       background: var(--panel);
       border-top-left-radius: 34px;
       border-top-right-radius: 34px;
-      padding: 24px 18px 24px;
+      padding: 20px 18px 18px;
       box-shadow: 0 -6px 16px rgba(50, 74, 90, 0.08);
       display: flex;
       flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
     }
 
     .welcome {
-      margin: 6px 0 4px;
-      font-size: 42px;
+      margin: 2px 0 4px;
+      font-size: clamp(34px, 7vw, 42px);
       font-weight: 900;
       line-height: 1;
       letter-spacing: -0.02em;
@@ -81,13 +90,13 @@
     }
 
     .welcome-sub {
-      margin: 0 0 18px;
+      margin: 0 0 14px;
       color: var(--soft-text);
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
     }
 
-    .field { margin-bottom: 16px; }
+    .field { margin-bottom: 12px; }
 
     label {
       display: block;
@@ -106,7 +115,7 @@
       background: var(--field);
       color: #1f2937;
       font-size: 17px;
-      padding: 16px 50px 16px 16px;
+      padding: 14px 50px 14px 16px;
       outline: none;
       transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
     }
@@ -147,10 +156,10 @@
       margin-top: 8px;
       border: 0;
       border-radius: 16px;
-      padding: 17px 14px;
+      padding: 15px 14px;
       background: linear-gradient(180deg, #aab7c8 0%, #97a8be 100%);
       color: var(--button-text);
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 800;
       cursor: pointer;
       box-shadow: 0 8px 16px rgba(66, 95, 110, 0.2);
@@ -181,13 +190,13 @@
     .bottom {
       margin-top: auto;
       text-align: center;
-      padding: 24px 0 8px;
+      padding: 18px 0 6px;
       border-top: 1px solid rgba(150, 166, 184, 0.18);
     }
 
     .support {
       color: #5e9cb4;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       margin-bottom: 8px;
     }
@@ -212,7 +221,7 @@
     @media (min-width: 431px) {
       body { padding: 18px; }
       .phone {
-        min-height: 860px;
+        min-height: 0;
         border-radius: 30px;
         box-shadow: 0 26px 54px rgba(43, 67, 78, 0.24);
       }
@@ -261,13 +270,17 @@
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
     const SHEETS_API_URL_KEY = 'aikongkong_sheets_api_url';
     const ADMIN_CACHE_KEY = 'aikongkong_admin_users_v1';
+    const ADMIN_CACHE_UPDATED_AT_KEY = 'aikongkong_admin_users_updated_at_v1';
     const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec';
+    const ADMIN_CACHE_MAX_AGE_MS = 60 * 1000;
+    const ADMIN_FETCH_TIMEOUT_MS = 5000;
     const BUILTIN_ADMINS = [
       { id: 'admin_default_jeongjio', name: '정지오', phone: '01085259253', isActive: 'Y' }
     ];
 
     const $ = (s) => document.querySelector(s);
     const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
+    let adminSyncPromise = null;
 
     function normalizeAdminPhone(phone) {
       const digits = toDigits(phone);
@@ -341,6 +354,15 @@
 
     function setCachedAdmins(admins) {
       localStorage.setItem(ADMIN_CACHE_KEY, JSON.stringify(mergeAdminsWithBuiltin(admins)));
+      localStorage.setItem(ADMIN_CACHE_UPDATED_AT_KEY, new Date().toISOString());
+    }
+
+    function isAdminCacheFresh() {
+      const raw = String(localStorage.getItem(ADMIN_CACHE_UPDATED_AT_KEY) || '').trim();
+      if (!raw) return false;
+      const savedAt = new Date(raw);
+      if (Number.isNaN(savedAt.getTime())) return false;
+      return (Date.now() - savedAt.getTime()) <= ADMIN_CACHE_MAX_AGE_MS;
     }
 
     function isAdminActive(admin) {
@@ -354,17 +376,55 @@
       }) || null;
     }
 
+    async function fetchWithTimeout(url, options = {}, timeoutMs = ADMIN_FETCH_TIMEOUT_MS) {
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      let timeoutId = 0;
+      const timeoutMessage = `관리자 목록 동기화 대기시간 초과 (${Math.ceil(timeoutMs / 1000)}초)`;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          if (controller) controller.abort();
+          reject(new Error(timeoutMessage));
+        }, timeoutMs);
+      });
+
+      try {
+        return await Promise.race([
+          fetch(url, {
+            ...options,
+            ...(controller ? { signal: controller.signal } : {})
+          }).catch((err) => {
+            if (controller && err?.name === 'AbortError') {
+              throw new Error(timeoutMessage);
+            }
+            throw err;
+          }),
+          timeoutPromise
+        ]);
+      } finally {
+        if (timeoutId) window.clearTimeout(timeoutId);
+      }
+    }
+
     async function fetchAdminsFromSheets() {
       const apiUrl = getSheetsApiUrl();
       if (!apiUrl) return getCachedAdmins();
       const sep = apiUrl.includes('?') ? '&' : '?';
-      const res = await fetch(`${apiUrl}${sep}action=load&t=${Date.now()}`, { method: 'GET', cache: 'no-store' });
+      const res = await fetchWithTimeout(`${apiUrl}${sep}action=loadAdmins&t=${Date.now()}`, { method: 'GET', cache: 'no-store' });
       if (!res.ok) throw new Error(`연동 서버 응답 오류 (${res.status})`);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || '관리자 목록 로드 실패');
       const admins = mergeAdminsWithBuiltin(Array.isArray(data.admins) ? data.admins : []);
       setCachedAdmins(admins);
       return admins;
+    }
+
+    function refreshAdminsFromSheets(force = false) {
+      if (!force && adminSyncPromise) return adminSyncPromise;
+      adminSyncPromise = fetchAdminsFromSheets()
+        .finally(() => {
+          adminSyncPromise = null;
+        });
+      return adminSyncPromise;
     }
 
     function showMsg(text, type = '') {
@@ -391,13 +451,20 @@
       }
 
       let admins = getCachedAdmins();
+      let matchedAdmin = findAdminByPhone(phone, admins);
       try {
-        admins = await fetchAdminsFromSheets();
+        const shouldSyncBeforeLogin = !matchedAdmin || !isAdminCacheFresh();
+        if (shouldSyncBeforeLogin) {
+          admins = await refreshAdminsFromSheets(true);
+          matchedAdmin = findAdminByPhone(phone, admins);
+        } else {
+          refreshAdminsFromSheets(false).catch(() => {});
+        }
       } catch (err) {
         showMsg(`관리자 목록 동기화 실패(캐시 사용): ${err.message}`, 'error');
       }
 
-      const matchedAdmin = findAdminByPhone(phone, admins);
+      matchedAdmin = matchedAdmin || findAdminByPhone(phone, admins);
       const role = matchedAdmin ? 'admin' : 'customer';
       sessionStorage.setItem(ENTRY_SESSION_KEY, JSON.stringify({
         role,
@@ -440,6 +507,7 @@
     if (!localStorage.getItem(ADMIN_CACHE_KEY)) {
       setCachedAdmins(BUILTIN_ADMINS);
     }
+    refreshAdminsFromSheets(false).catch(() => {});
 
     enableDevAutoReload();
   </script>
