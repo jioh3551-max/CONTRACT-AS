@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -274,6 +274,8 @@
     const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec';
     const ADMIN_CACHE_MAX_AGE_MS = 60 * 1000;
     const ADMIN_FETCH_TIMEOUT_MS = 5000;
+    const CUSTOMER_FETCH_TIMEOUT_MS = 15000;
+    const CUSTOMER_LOOKUP_ACTION = 'findCustomerLogin';
     const BUILTIN_ADMINS = [
       { id: 'admin_default_jeongjio', name: '정지오', phone: '01085259253', isActive: 'Y' }
     ];
@@ -281,6 +283,10 @@
     const $ = (s) => document.querySelector(s);
     const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
     let adminSyncPromise = null;
+
+    function normalizeCustomerName(name) {
+      return String(name || '').replace(/\s+/g, '').trim();
+    }
 
     function normalizeAdminPhone(phone) {
       const digits = toDigits(phone);
@@ -376,6 +382,16 @@
       }) || null;
     }
 
+    function findCustomerContractByEntry(contracts, name, phone) {
+      const targetName = normalizeCustomerName(name);
+      const targetPhone = toDigits(phone);
+      if (!targetName || !targetPhone) return null;
+      return (contracts || []).find((contract) => {
+        return toDigits(contract?.phone) === targetPhone
+          && normalizeCustomerName(contract?.customerName) === targetName;
+      }) || null;
+    }
+
     async function fetchWithTimeout(url, options = {}, timeoutMs = ADMIN_FETCH_TIMEOUT_MS) {
       const controller = typeof AbortController === 'function' ? new AbortController() : null;
       let timeoutId = 0;
@@ -418,6 +434,34 @@
       return admins;
     }
 
+    async function fetchCustomerLoginMatch(name, phone) {
+      const apiUrl = getSheetsApiUrl();
+      if (!apiUrl) {
+        throw new Error('구글시트 API URL이 설정되지 않았습니다.');
+      }
+
+      const sep = apiUrl.includes('?') ? '&' : '?';
+      const query = `${apiUrl}${sep}action=${encodeURIComponent(CUSTOMER_LOOKUP_ACTION)}&name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
+      let res = await fetchWithTimeout(query, { method: 'GET', cache: 'no-store' }, CUSTOMER_FETCH_TIMEOUT_MS);
+      if (!res.ok) throw new Error(`연동 서버 응답 오류 (${res.status})`);
+
+      let data = await res.json();
+      if (data?.ok && typeof data.matched === 'boolean') {
+        return data.customer || null;
+      }
+
+      if (!data?.ok && !String(data?.error || '').startsWith('UNKNOWN_ACTION')) {
+        throw new Error(data.error || '고객 계약 확인 실패');
+      }
+
+      const fallbackRes = await fetchWithTimeout(`${apiUrl}${sep}action=load&t=${Date.now()}`, { method: 'GET', cache: 'no-store' }, CUSTOMER_FETCH_TIMEOUT_MS);
+      if (!fallbackRes.ok) throw new Error(`연동 서버 응답 오류 (${fallbackRes.status})`);
+      data = await fallbackRes.json();
+      if (!data?.ok) throw new Error(data?.error || '고객 계약 확인 실패');
+
+      return findCustomerContractByEntry(Array.isArray(data.contracts) ? data.contracts : [], name, phone);
+    }
+
     function refreshAdminsFromSheets(force = false) {
       if (!force && adminSyncPromise) return adminSyncPromise;
       adminSyncPromise = fetchAdminsFromSheets()
@@ -434,6 +478,13 @@
       el.textContent = text;
     }
 
+    function clearMsg() {
+      const el = $('#entryMsg');
+      el.style.display = 'none';
+      el.className = 'notice';
+      el.textContent = '';
+    }
+
     $('#clearNameBtn').addEventListener('click', () => {
       $('#nameInput').value = '';
       $('#nameInput').focus();
@@ -444,6 +495,7 @@
       const form = e.currentTarget;
       const name = form.name.value.trim();
       const phone = toDigits(form.phone.value);
+      clearMsg();
 
       if (!name || phone.length < 10) {
         showMsg('이름과 연락처를 정확히 입력해주세요.', 'error');
@@ -465,20 +517,41 @@
       }
 
       matchedAdmin = matchedAdmin || findAdminByPhone(phone, admins);
-      const role = matchedAdmin ? 'admin' : 'customer';
-      sessionStorage.setItem(ENTRY_SESSION_KEY, JSON.stringify({
-        role,
-        adminId: matchedAdmin ? String(matchedAdmin.id || '') : '',
-        name: matchedAdmin ? (matchedAdmin.name || name) : name,
-        phone,
-        loggedAt: new Date().toISOString()
-      }));
-
-      if (role === 'admin') {
+      if (matchedAdmin) {
+        sessionStorage.setItem(ENTRY_SESSION_KEY, JSON.stringify({
+          role: 'admin',
+          adminId: String(matchedAdmin.id || ''),
+          name: matchedAdmin.name || name,
+          phone,
+          loggedAt: new Date().toISOString()
+        }));
         location.href = './admin.html';
         return;
       }
 
+      let matchedCustomer = null;
+      try {
+        matchedCustomer = await fetchCustomerLoginMatch(name, phone);
+      } catch (err) {
+        showMsg(`고객 계약 확인 실패: ${err.message}`, 'error');
+        return;
+      }
+
+      if (!matchedCustomer) {
+        sessionStorage.removeItem(ENTRY_SESSION_KEY);
+        showMsg('등록된 고객 계약이 없습니다. 관리자에게 계약 등록 여부를 확인해주세요.', 'error');
+        return;
+      }
+
+      sessionStorage.setItem(ENTRY_SESSION_KEY, JSON.stringify({
+        role: 'customer',
+        customerId: String(matchedCustomer.id || ''),
+        contractNo: String(matchedCustomer.contractNo || ''),
+        name: matchedCustomer.customerName || name,
+        phone: toDigits(matchedCustomer.phone || phone),
+        loggedAt: new Date().toISOString(),
+        verifiedAt: new Date().toISOString()
+      }));
       location.href = './customer.html';
     });
 
