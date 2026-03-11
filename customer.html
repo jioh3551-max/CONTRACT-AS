@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -355,25 +355,7 @@
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
 
     const seedData = {
-      contracts: [{
-        id: 'sample_contract_1',
-        contractNo: 'C20260308001',
-        customerName: '홍길동',
-        phone: '01012345678',
-        address: '청주시 흥덕구 예시로 101',
-        product: '스킨퓨어 1200',
-        color: '크림베이지',
-        totalPrice: '2450000',
-        installDate: '2026-03-20',
-        installRound: '1차 후 2차 예정',
-        discountTypes: '공동구매, 베페할인',
-        discountEtc: '',
-        installNote: '냉장고 앞 미시공, 2차 마감 예정',
-        installerName: '정지오',
-        installerPhone: '01085259253',
-        signatureImage: '',
-        createdAt: new Date().toISOString()
-      }],
+      contracts: [],
       asRequests: []
     };
 
@@ -387,6 +369,10 @@
     const $ = (s) => document.querySelector(s);
     const $$ = (s) => Array.from(document.querySelectorAll(s));
     const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
+
+    function normalizeCustomerName(name) {
+      return String(name || '').replace(/\s+/g, '').trim();
+    }
 
     function todayString() {
       return new Date().toISOString().split('T')[0];
@@ -780,9 +766,18 @@
     }
 
     function findCurrentCustomer(entry) {
+      const customerId = String(entry?.customerId || '').trim();
+      if (customerId) {
+        return state.contracts.find((item) => String(item?.id || '').trim() === customerId) || null;
+      }
+
+      const targetPhone = toDigits(entry?.phone);
+      const targetName = normalizeCustomerName(entry?.name);
+      if (!targetPhone || !targetName) return null;
+
       return state.contracts.find((item) => {
-        const samePhone = toDigits(item.phone) === toDigits(entry.phone);
-        const sameName = (item.customerName || '').trim() === (entry.name || '').trim();
+        const samePhone = toDigits(item?.phone) === targetPhone;
+        const sameName = normalizeCustomerName(item?.customerName) === targetName;
         return samePhone && sameName;
       }) || null;
     }
@@ -911,8 +906,10 @@
 
       state.currentCustomer = findCurrentCustomer(entry);
       if (!state.currentCustomer) {
-        $('#customerContractEmpty').className = 'empty notice error';
-        $('#customerContractEmpty').textContent = '일치하는 계약이 없습니다. 관리자에게 계약 등록 여부를 확인해주세요.';
+        sessionStorage.removeItem(ENTRY_SESSION_KEY);
+        alert('등록된 고객 계약이 확인되지 않아 로그인할 수 없습니다. 관리자에게 계약 등록 여부를 확인해주세요.');
+        location.replace('./index.html');
+        return;
       }
 
       renderAll();
@@ -921,3 +918,4 @@
   </script>
 </body>
 </html>
+
