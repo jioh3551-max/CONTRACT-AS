@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -32,7 +32,7 @@
         var(--bg);
     }
 
-    .container { max-width: 980px; margin: 0 auto; padding: 16px 14px 60px; }
+    .container { max-width: 980px; margin: 0 auto; padding: 12px 14px 40px; }
 
     .topbar {
       display: flex;
@@ -42,65 +42,20 @@
       margin-bottom: 12px;
     }
 
-    .top-icons {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .big-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: #a3a4a8;
-      color: #fff;
-      border-radius: 999px;
-      padding: 8px 14px 8px 10px;
-      font-size: 14px;
-      font-weight: 800;
-    }
-
-    .big-chip::before {
-      content: '';
-      width: 30px;
-      height: 30px;
-      border-radius: 999px;
-      background: #fff;
-      box-shadow: inset 0 0 0 1px rgba(17, 24, 39, 0.08);
-    }
-
-    .icon-btn {
-      border: 0;
-      background: transparent;
-      color: #20242c;
-      font-size: 29px;
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      text-decoration: none;
-      transition: background-color 0.2s ease, transform 0.15s ease;
-    }
-    .icon-btn:hover { background: rgba(255, 255, 255, 0.72); }
-    .icon-btn:active { transform: translateY(1px); }
-
     .hero-name {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-size: 46px;
+      font-size: clamp(34px, 3.5vw, 46px);
       font-weight: 900;
       letter-spacing: -0.03em;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       line-height: 1.1;
     }
 
     .hero-arrow {
       color: #2f3541;
-      font-size: 44px;
+      font-size: clamp(30px, 3vw, 44px);
       margin-top: -4px;
     }
 
@@ -116,7 +71,7 @@
       align-items: center;
       gap: 14px;
       flex-wrap: wrap;
-      margin-top: -4px;
+      margin-top: 0;
     }
 
     .link {
@@ -132,11 +87,11 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 7px 12px;
+      padding: 6px 10px;
       border-radius: 999px;
       background: var(--blue-soft);
       color: var(--blue);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 800;
       border: 1px solid rgba(47, 145, 145, 0.1);
     }
@@ -163,10 +118,10 @@
       border: 1px solid var(--line);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      padding: 18px;
+      padding: 16px;
     }
 
-    .section-gap { margin-bottom: 14px; }
+    .section-gap { margin-bottom: 10px; }
 
     .mode-switch {
       background: transparent;
@@ -177,7 +132,7 @@
 
     .view-switch {
       display: flex;
-      gap: 18px;
+      gap: 14px;
       flex-wrap: wrap;
       align-items: flex-end;
     }
@@ -188,8 +143,8 @@
       background: transparent;
       color: #8b93a1;
       border-radius: 0;
-      padding: 4px 0 8px;
-      font-size: 30px;
+      padding: 2px 0 6px;
+      font-size: clamp(22px, 2.6vw, 30px);
       font-weight: 800;
       cursor: pointer;
       letter-spacing: -0.02em;
@@ -665,6 +620,46 @@
       margin-bottom: 2px;
     }
 
+    .pricing-field-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 2px;
+      min-height: 20px;
+    }
+
+    .pricing-field-head label {
+      margin-bottom: 0;
+    }
+
+    .pricing-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #475569;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pricing-toggle-row input {
+      width: auto;
+      margin: 0;
+      padding: 0;
+    }
+
+    .pricing-toggle-row.is-disabled {
+      opacity: 0.5;
+    }
+
+    .pricing-field-hint {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #7b8796;
+      line-height: 1.35;
+    }
+
     .pricing-value {
       min-height: 28px;
       display: flex;
@@ -827,7 +822,7 @@
 
     .paper-sign-row {
       display: grid;
-      grid-template-columns: 74px 1fr auto 96px;
+      grid-template-columns: 74px 1fr auto 108px;
       align-items: center;
       gap: 8px;
       margin-top: 4px;
@@ -856,8 +851,8 @@
     }
 
     .sign-stamp-inline {
-      width: 92px;
-      height: 32px;
+      width: 104px;
+      height: 38px;
       object-fit: contain;
       mix-blend-mode: multiply;
       opacity: 0;
@@ -907,13 +902,24 @@
 
     .thumb-sign {
       margin-top: 10px;
-      max-width: 220px;
+      max-width: 236px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
     }
 
     .hidden-view { display: none; }
+
+    @media (max-height: 980px) {
+      .container { padding: 10px 14px 28px; }
+      .hero-name { font-size: 38px; margin-bottom: 2px; }
+      .hero-arrow { font-size: 32px; }
+      .chip { padding: 5px 9px; font-size: 10px; }
+      .quick-links { gap: 10px; }
+      .section-gap { margin-bottom: 8px; }
+      .card { padding: 14px; }
+      .tab-btn { font-size: 22px; }
+    }
 
     @media (max-width: 920px) {
       .stats, .grid { grid-template-columns: 1fr; }
@@ -924,8 +930,9 @@
       .paper-line-label { min-width: 0; font-size: 14px; }
       .paper-line-payment .payment-method { max-width: none; }
       .pricing-row { grid-template-columns: 1fr 1fr; }
+      .pricing-row > button[data-remove-product-item] { grid-column: 1 / -1; }
       .pricing-builder-foot { flex-direction: column; align-items: flex-start; }
-      .paper-sign-row { grid-template-columns: 68px 1fr auto 86px; }
+      .paper-sign-row { grid-template-columns: 68px 1fr auto 98px; }
       .toolbar input { max-width: none; }
       .hero-name { font-size: 42px; }
       .tab-btn { font-size: 24px; }
@@ -935,7 +942,6 @@
       .hero-name { font-size: 34px; }
       .hero-arrow { font-size: 30px; }
       .tab-btn { font-size: 18px; }
-      .icon-btn { font-size: 24px; width: 38px; height: 38px; }
       .view-switch { gap: 12px; }
       .pricing-row { grid-template-columns: 1fr; }
     }
@@ -943,15 +949,6 @@
 </head>
 <body>
   <div class="container">
-    <div class="topbar">
-      <span class="big-chip">큰글</span>
-      <div class="top-icons">
-        <button class="icon-btn" id="topBellBtn" type="button" aria-label="알림">🔔</button>
-        <button class="icon-btn" id="topSearchBtn" type="button" aria-label="검색">🔍</button>
-        <a class="icon-btn" href="./index.html" aria-label="처음 화면">☰</a>
-      </div>
-    </div>
-
     <div class="hero-name"><span id="heroNameText">관리자 님</span><span class="hero-arrow">›</span></div>
     <div class="hero-meta section-gap">
       <span id="sessionChip" class="chip success">관리자 인증됨</span>
@@ -1087,7 +1084,7 @@
                   </div>
                   <div id="productItemList" class="pricing-row-list"></div>
                   <div class="pricing-builder-foot">
-                    <div class="pricing-builder-note" id="productCalcSummaryText">매트 종류와 수량을 선택하면 품명과 결제금액이 자동 계산됩니다.</div>
+                    <div class="pricing-builder-note" id="productCalcSummaryText">매트 종류, 수량, 장당 금액을 입력하면 품명과 결제금액이 자동 계산됩니다.</div>
                     <div class="pricing-total">합계 <span id="productCalcTotalText">0원</span></div>
                   </div>
                 </div>
@@ -1305,6 +1302,8 @@
     const MAT_PRODUCT_CATALOG = [
       { name: '프리미엄600', unitPrice: 22000, aliases: ['프리미엄 600'] },
       { name: '스킨퓨어600', unitPrice: 25000, aliases: ['스킨퓨어 600'] },
+      { name: '[리퍼브]프리미엄600', unitPrice: 22000, aliases: ['[리퍼브] 프리미엄600', '[리퍼브]프리미엄 600', '[리퍼브] 프리미엄 600'] },
+      { name: '[리퍼브]스킨퓨어600', unitPrice: 25000, aliases: ['[리퍼브] 스킨퓨어600', '[리퍼브]스킨퓨어 600', '[리퍼브] 스킨퓨어 600'] },
       { name: '프리미엄1200', unitPrice: 108000, aliases: ['프리미엄 1200'] },
       { name: '스킨퓨어1200', unitPrice: 118000, aliases: ['스킨퓨어 1200'] },
       { name: '[리퍼브]프리미엄1200', unitPrice: 98000, aliases: ['[리퍼브] 프리미엄1200', '[리퍼브]프리미엄 1200', '[리퍼브] 프리미엄 1200'] },
@@ -1537,11 +1536,22 @@
       return String(value || '').replace(/\s+/g, '').trim().toLowerCase();
     }
 
+    function isRefurbMatType(value) {
+      return /^\s*\[리퍼브\]/.test(String(value || '').trim());
+    }
+
+    function getBaseMatType(value) {
+      const catalog = findMatCatalogItem(value);
+      const source = catalog?.name || String(value || '').trim();
+      return source.replace(/^\s*\[리퍼브\]\s*/, '').trim();
+    }
+
     function createProductItem(type = '', quantity = 0) {
       return {
         id: makeProductItemId(),
         type: String(type || '').trim(),
-        quantity: Math.max(0, Number.parseInt(quantity, 10) || 0)
+        quantity: Math.max(0, Number.parseInt(quantity, 10) || 0),
+        unitPrice: 0
       };
     }
 
@@ -1549,8 +1559,13 @@
       return (Array.isArray(items) ? items : []).map((item) => ({
         id: String(item?.id || '').trim() || makeProductItemId(),
         type: String(item?.type || '').trim(),
-        quantity: Math.max(0, Number.parseInt(item?.quantity, 10) || 0)
+        quantity: Math.max(0, Number.parseInt(item?.quantity, 10) || 0),
+        unitPrice: normalizeUnitPriceValue(item?.unitPrice)
       }));
+    }
+
+    function normalizeUnitPriceValue(value) {
+      return Math.max(0, Number.parseInt(normalizeMoneyValue(value), 10) || 0);
     }
 
     function findMatCatalogItem(type) {
@@ -1567,16 +1582,57 @@
       return findMatCatalogItem(type)?.unitPrice || 0;
     }
 
+    function getSelectableMatTypes() {
+      const seen = new Set();
+      return MAT_PRODUCT_CATALOG.map((item) => getBaseMatType(item.name)).filter((name) => {
+        const key = normalizeCatalogKey(name);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function supportsRefurbForType(baseType) {
+      const key = normalizeCatalogKey(baseType);
+      if (!key) return false;
+      return MAT_PRODUCT_CATALOG.some((item) => {
+        return isRefurbMatType(item.name) && normalizeCatalogKey(getBaseMatType(item.name)) === key;
+      });
+    }
+
+    function resolveCatalogType(baseType, wantsRefurb) {
+      const key = normalizeCatalogKey(baseType);
+      if (!key) return '';
+
+      const matched = MAT_PRODUCT_CATALOG.find((item) => {
+        const isRefurb = isRefurbMatType(item.name);
+        if (Boolean(wantsRefurb) !== isRefurb) return false;
+        return normalizeCatalogKey(getBaseMatType(item.name)) === key;
+      });
+      if (matched) return matched.name;
+
+      const fallback = MAT_PRODUCT_CATALOG.find((item) => normalizeCatalogKey(getBaseMatType(item.name)) === key);
+      return fallback?.name || '';
+    }
+
+    function getAppliedProductItemUnitPrice(item) {
+      const manualUnitPrice = normalizeUnitPriceValue(item?.unitPrice);
+      if (manualUnitPrice > 0) return manualUnitPrice;
+      return getMatUnitPrice(item?.type);
+    }
+
     function getValidProductItems(items = state.productItems) {
       return normalizeProductItems(items)
         .map((item) => {
           const catalog = findMatCatalogItem(item.type);
+          const unitPrice = getAppliedProductItemUnitPrice(item);
           if (!catalog || item.quantity <= 0) return null;
+          if (unitPrice <= 0) return null;
           return {
             id: item.id,
             type: catalog.name,
             quantity: item.quantity,
-            unitPrice: catalog.unitPrice
+            unitPrice
           };
         })
         .filter(Boolean);
@@ -1596,7 +1652,8 @@
       if (!validItems.length) return '';
       return JSON.stringify(validItems.map((item) => ({
         type: item.type,
-        quantity: item.quantity
+        quantity: item.quantity,
+        unitPrice: item.unitPrice
       })));
     }
 
@@ -1619,10 +1676,20 @@
         if (!matched) return null;
         const catalog = findMatCatalogItem(matched[1]);
         if (!catalog) return null;
-        return createProductItem(catalog.name, matched[2]);
+        const quantity = Math.max(0, Number.parseInt(matched[2], 10) || 0);
+        return {
+          ...createProductItem(catalog.name, quantity),
+          unitPrice: catalog.unitPrice
+        };
       }).filter(Boolean);
 
-      if (parsedItems.length) return parsedItems;
+      if (parsedItems.length) {
+        const total = Number.parseInt(normalizeMoneyValue(totalPrice), 10) || 0;
+        if (parsedItems.length === 1 && total > 0 && parsedItems[0].quantity > 0) {
+          parsedItems[0].unitPrice = Math.floor(total / parsedItems[0].quantity);
+        }
+        return parsedItems;
+      }
 
       const matchedCatalog = MAT_PRODUCT_CATALOG.find((item) => {
         const candidates = [item.name].concat(Array.isArray(item.aliases) ? item.aliases : []);
@@ -1633,10 +1700,16 @@
 
       const total = Number.parseInt(normalizeMoneyValue(totalPrice), 10) || 0;
       if (total > 0 && matchedCatalog.unitPrice > 0 && total % matchedCatalog.unitPrice === 0) {
-        return [createProductItem(matchedCatalog.name, total / matchedCatalog.unitPrice)];
+        return [{
+          ...createProductItem(matchedCatalog.name, total / matchedCatalog.unitPrice),
+          unitPrice: matchedCatalog.unitPrice
+        }];
       }
 
-      return [createProductItem(matchedCatalog.name, 1)];
+      return [{
+        ...createProductItem(matchedCatalog.name, 1),
+        unitPrice: total > 0 ? total : matchedCatalog.unitPrice
+      }];
     }
 
     function getProductItemsFromContract(contract) {
@@ -1653,20 +1726,31 @@
         state.productItems = [createProductItem()];
       }
 
+      const selectableTypes = getSelectableMatTypes();
       list.innerHTML = state.productItems.map((item) => {
-        const unitPrice = getMatUnitPrice(item.type);
+        const baseType = getBaseMatType(item.type);
+        const refurbChecked = isRefurbMatType(item.type);
+        const refurbSupported = supportsRefurbForType(baseType);
+        const catalogUnitPrice = getMatUnitPrice(item.type);
+        const unitPrice = getAppliedProductItemUnitPrice(item);
         const subtotal = unitPrice * item.quantity;
         const options = ['<option value="">매트 종류 선택</option>']
-          .concat(MAT_PRODUCT_CATALOG.map((catalog) => {
-            const selected = catalog.name === item.type ? ' selected' : '';
-            return `<option value="${escapeHtml(catalog.name)}"${selected}>${escapeHtml(catalog.name)} · ${escapeHtml(formatMoneyText(catalog.unitPrice))}</option>`;
+          .concat(selectableTypes.map((catalogName) => {
+            const selected = catalogName === baseType ? ' selected' : '';
+            return `<option value="${escapeHtml(catalogName)}"${selected}>${escapeHtml(catalogName)}</option>`;
           }))
           .join('');
 
         return `
           <div class="pricing-row" data-product-item-row="${escapeHtml(item.id)}">
             <div class="pricing-field">
-              <label>매트 종류</label>
+              <div class="pricing-field-head">
+                <label>매트 종류</label>
+                <label class="pricing-toggle-row ${refurbSupported ? '' : 'is-disabled'}">
+                  <input type="checkbox" data-product-item-refurb ${refurbChecked ? 'checked' : ''} ${refurbSupported ? '' : 'disabled'} />
+                  <span>[리퍼브]</span>
+                </label>
+              </div>
               <select data-product-item-type>
                 ${options}
               </select>
@@ -1677,7 +1761,8 @@
             </div>
             <div class="pricing-field">
               <label>장당 금액</label>
-              <div class="pricing-value" data-product-item-unit>${escapeHtml(formatMoneyText(unitPrice) || '-')}</div>
+              <input type="text" inputmode="numeric" value="${escapeHtml(formatMoneyInputValue(unitPrice))}" data-product-item-unit-input placeholder="장당 금액 입력" />
+              <div class="pricing-field-hint">${catalogUnitPrice > 0 ? `기준가 ${escapeHtml(formatMoneyText(catalogUnitPrice))}` : '금액을 직접 입력할 수 있습니다.'}${baseType && !refurbSupported ? ' / 리퍼브 선택 불가' : ''}</div>
             </div>
             <div class="pricing-field">
               <label>소계</label>
@@ -1705,7 +1790,7 @@
       if (totalPriceInput) totalPriceInput.value = formatMoneyInputValue(totalPrice);
       if (totalText) totalText.textContent = formatMoneyText(totalPrice) || '0원';
       if (summaryText) {
-        summaryText.textContent = productSummary || '매트 종류와 수량을 선택하면 품명과 결제금액이 자동 계산됩니다.';
+        summaryText.textContent = productSummary || '매트 종류, 수량, 장당 금액을 입력하면 품명과 결제금액이 자동 계산됩니다.';
       }
 
       syncContractOverlayFields();
@@ -2023,7 +2108,27 @@
       return d.toLocaleString('ko-KR');
     }
 
-    function loadInstallerProfile(defaultProfile = {}) {
+    function normalizeInstallerProfileRecord(profile, defaultProfile = {}) {
+      const source = profile && typeof profile === 'object' ? profile : {};
+      return {
+        name: String(source.name || defaultProfile?.name || '').trim(),
+        phone: toDigits(source.phone || defaultProfile?.phone || ''),
+        address: String(source.address || defaultProfile?.address || '').trim(),
+        signatureImage: String(source.signatureImage || ''),
+        savedAt: String(source.savedAt || ''),
+        signatureSavedAt: String(source.signatureSavedAt || source.savedAt || '')
+      };
+    }
+
+    function getInstallerProfileOwnerKey(fallbackOwner = {}) {
+      const ownerPhone = toDigits(state.currentAdminPhone || fallbackOwner?.phone || '');
+      if (ownerPhone) return `phone:${ownerPhone}`;
+      const ownerName = normalizeText(state.currentAdminName || fallbackOwner?.name || '');
+      if (ownerName) return `name:${ownerName}`;
+      return 'default';
+    }
+
+    function readInstallerProfileStore() {
       let parsed = null;
       try {
         const raw = localStorage.getItem(INSTALLER_PROFILE_KEY);
@@ -2032,24 +2137,68 @@
         parsed = null;
       }
 
+      if (parsed && typeof parsed === 'object' && parsed.version === 2 && parsed.profiles && typeof parsed.profiles === 'object') {
+        return {
+          version: 2,
+          profiles: parsed.profiles,
+          legacyProfile: parsed.legacyProfile && typeof parsed.legacyProfile === 'object' ? parsed.legacyProfile : null
+        };
+      }
+
       return {
-        name: String(parsed?.name || defaultProfile?.name || '').trim(),
-        phone: toDigits(parsed?.phone || defaultProfile?.phone || ''),
-        address: String(parsed?.address || defaultProfile?.address || '').trim(),
-        signatureImage: String(parsed?.signatureImage || ''),
-        savedAt: String(parsed?.savedAt || ''),
-        signatureSavedAt: String(parsed?.signatureSavedAt || parsed?.savedAt || '')
+        version: 2,
+        profiles: {},
+        legacyProfile: parsed && typeof parsed === 'object' ? parsed : null
       };
     }
 
+    function getLegacyInstallerProfileForCurrentAdmin(legacyProfile, defaultProfile = {}) {
+      if (!legacyProfile || typeof legacyProfile !== 'object') return null;
+
+      const adminPhone = toDigits(state.currentAdminPhone || defaultProfile?.phone || '');
+      const adminName = normalizeText(state.currentAdminName || defaultProfile?.name || '');
+      const legacyPhone = toDigits(legacyProfile.phone || '');
+      const legacyName = normalizeText(legacyProfile.name || '');
+
+      if (adminPhone && legacyPhone && adminPhone === legacyPhone) return legacyProfile;
+      if (adminName && legacyName && adminName === legacyName) return legacyProfile;
+      if (!adminPhone && !adminName) return legacyProfile;
+      return null;
+    }
+
+    function loadInstallerProfile(defaultProfile = {}) {
+      const store = readInstallerProfileStore();
+      const ownerKey = getInstallerProfileOwnerKey(defaultProfile);
+      const scopedProfile = store.profiles?.[ownerKey];
+      if (scopedProfile) {
+        return normalizeInstallerProfileRecord(scopedProfile, defaultProfile);
+      }
+
+      const legacyProfile = getLegacyInstallerProfileForCurrentAdmin(store.legacyProfile, defaultProfile);
+      return normalizeInstallerProfileRecord(legacyProfile, defaultProfile);
+    }
+
     function saveInstallerProfile() {
+      const store = readInstallerProfileStore();
+      const ownerKey = getInstallerProfileOwnerKey(state.installerProfile || {});
+      const nextProfiles = {
+        ...(store.profiles || {}),
+        [ownerKey]: {
+          ownerName: String(state.currentAdminName || '').trim(),
+          ownerPhone: toDigits(state.currentAdminPhone || ''),
+          name: state.installerProfile?.name || '',
+          phone: state.installerProfile?.phone || '',
+          address: state.installerProfile?.address || '',
+          signatureImage: state.installerProfile?.signatureImage || '',
+          savedAt: state.installerProfile?.savedAt || '',
+          signatureSavedAt: state.installerProfile?.signatureSavedAt || ''
+        }
+      };
+
       localStorage.setItem(INSTALLER_PROFILE_KEY, JSON.stringify({
-        name: state.installerProfile?.name || '',
-        phone: state.installerProfile?.phone || '',
-        address: state.installerProfile?.address || '',
-        signatureImage: state.installerProfile?.signatureImage || '',
-        savedAt: state.installerProfile?.savedAt || '',
-        signatureSavedAt: state.installerProfile?.signatureSavedAt || ''
+        version: 2,
+        profiles: nextProfiles,
+        legacyProfile: store.legacyProfile && typeof store.legacyProfile === 'object' ? store.legacyProfile : null
       }));
     }
 
@@ -2448,8 +2597,22 @@
         if (event.target.matches('[data-product-item-type]')) {
           state.legacyProductSummary = '';
           state.legacyTotalPrice = '';
-          const catalog = findMatCatalogItem(event.target.value);
-          item.type = catalog ? catalog.name : '';
+          const wantsRefurb = Boolean(row.querySelector('[data-product-item-refurb]')?.checked);
+          const baseType = String(event.target.value || '').trim();
+          const resolvedType = resolveCatalogType(baseType, wantsRefurb);
+          item.type = resolvedType || '';
+          item.unitPrice = getMatUnitPrice(item.type);
+          renderProductItemRows();
+          syncProductPricingFields();
+          return;
+        }
+
+        if (event.target.matches('[data-product-item-refurb]')) {
+          state.legacyProductSummary = '';
+          state.legacyTotalPrice = '';
+          const baseType = getBaseMatType(item.type || row.querySelector('[data-product-item-type]')?.value || '');
+          item.type = resolveCatalogType(baseType, event.target.checked);
+          item.unitPrice = getMatUnitPrice(item.type);
           renderProductItemRows();
           syncProductPricingFields();
           return;
@@ -2461,8 +2624,20 @@
           item.quantity = Math.max(0, Number.parseInt(event.target.value, 10) || 0);
           syncProductPricingFields();
 
-          const unitPrice = getMatUnitPrice(item.type);
+          const unitPrice = getAppliedProductItemUnitPrice(item);
           const subtotal = unitPrice * item.quantity;
+          const subtotalEl = row.querySelector('[data-product-item-subtotal]');
+          if (subtotalEl) subtotalEl.textContent = formatMoneyText(subtotal) || '-';
+        }
+
+        if (event.target.matches('[data-product-item-unit-input]')) {
+          state.legacyProductSummary = '';
+          state.legacyTotalPrice = '';
+          item.unitPrice = normalizeUnitPriceValue(event.target.value);
+          event.target.value = formatMoneyInputValue(item.unitPrice);
+          syncProductPricingFields();
+
+          const subtotal = item.unitPrice * item.quantity;
           const subtotalEl = row.querySelector('[data-product-item-subtotal]');
           if (subtotalEl) subtotalEl.textContent = formatMoneyText(subtotal) || '-';
         }
@@ -2756,7 +2931,7 @@
       let lastY = 0;
 
       function setDrawingStyle() {
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3.8;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.strokeStyle = '#111827';
@@ -3012,14 +3187,6 @@
       renderAdminAsList();
     });
 
-    $('#topSearchBtn').addEventListener('click', () => {
-      location.href = './contracts.html';
-    });
-
-    $('#topBellBtn').addEventListener('click', () => {
-      showStatus('새 알림이 없습니다.', 'success');
-    });
-
     $$('[data-admin-view-btn]').forEach((btn) => {
       btn.addEventListener('click', () => {
         setAdminView(btn.dataset.adminViewBtn);
@@ -3061,7 +3228,7 @@
       }
 
       if (!hasConfiguredProductPricing() || !productSummary || !normalizeMoneyValue(fd.get('totalPrice'))) {
-        alert('매트 종류와 수량을 먼저 선택해주세요. 결제금액은 자동 계산됩니다.');
+        alert('매트 종류, 수량, 장당 금액을 먼저 입력해주세요.');
         return;
       }
 
