@@ -304,7 +304,10 @@
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
     const AUTO_ADMIN_LOGIN_KEY = 'aikongkong_auto_admin_login_v1';
     const SHEETS_API_URL_KEY = 'aikongkong_sheets_api_url';
-    const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec';
+    const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbwXzHRK86DjFBUtxvg5nhKaIl7Zaqq7Qm2P6Et7Db3fBEq2j5abLaBVxGSBmqX2WZ6V/exec';
+    const LEGACY_SHEETS_API_URLS = [
+      'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec'
+    ];
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
     const RECENT_CONTRACT_LIMIT = 10;
 
@@ -335,6 +338,7 @@
       contracts: [],
       asRequests: [],
       source: 'local',
+      currentAdminId: '',
       currentAdminName: '',
       currentAdminPhone: '',
       filterKeyword: ''
@@ -398,7 +402,9 @@
 
     function getSheetsApiUrl() {
       const fromLocal = String(localStorage.getItem(SHEETS_API_URL_KEY) || '').trim();
-      return fromLocal || DEFAULT_SHEETS_API_URL;
+      if (fromLocal && !LEGACY_SHEETS_API_URLS.includes(fromLocal)) return fromLocal;
+      localStorage.setItem(SHEETS_API_URL_KEY, DEFAULT_SHEETS_API_URL);
+      return DEFAULT_SHEETS_API_URL;
     }
 
     async function fetchWithTimeout(url, options = {}, timeoutMs = REMOTE_FETCH_TIMEOUT_MS) {
@@ -541,8 +547,15 @@
       const apiUrl = getSheetsApiUrl();
       if (!apiUrl) throw new Error('구글시트 API URL이 비어 있습니다.');
 
+      const params = new URLSearchParams({
+        action: 'loadInstallerData',
+        adminId: String(state.currentAdminId || '').trim(),
+        name: String(state.currentAdminName || '').trim(),
+        phone: toDigits(state.currentAdminPhone || ''),
+        t: String(Date.now())
+      });
       const sep = apiUrl.includes('?') ? '&' : '?';
-      const res = await fetchWithTimeout(`${apiUrl}${sep}action=load&t=${Date.now()}`, {
+      const res = await fetchWithTimeout(`${apiUrl}${sep}${params.toString()}`, {
         method: 'GET',
         cache: 'no-store'
       });
@@ -792,6 +805,7 @@
       const entry = guardAdminAccess();
       if (!entry) return;
 
+      state.currentAdminId = String(entry.adminId || '').trim();
       state.currentAdminName = String(entry.name || '').trim();
       state.currentAdminPhone = toDigits(entry.phone);
       $('#heroTitle').textContent = `${entry.name} 님 계약목록`;

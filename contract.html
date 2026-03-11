@@ -707,7 +707,10 @@
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
     const SHEETS_API_URL_KEY = 'aikongkong_sheets_api_url';
-    const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec';
+    const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbwXzHRK86DjFBUtxvg5nhKaIl7Zaqq7Qm2P6Et7Db3fBEq2j5abLaBVxGSBmqX2WZ6V/exec';
+    const LEGACY_SHEETS_API_URLS = [
+      'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec'
+    ];
     const SHARE_SITE_URL = 'https://contract-as.pages.dev';
     const HTML2CANVAS_URL = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
@@ -719,7 +722,9 @@
 
     function getSheetsApiUrl() {
       const fromLocal = String(localStorage.getItem(SHEETS_API_URL_KEY) || '').trim();
-      return fromLocal || DEFAULT_SHEETS_API_URL;
+      if (fromLocal && !LEGACY_SHEETS_API_URLS.includes(fromLocal)) return fromLocal;
+      localStorage.setItem(SHEETS_API_URL_KEY, DEFAULT_SHEETS_API_URL);
+      return DEFAULT_SHEETS_API_URL;
     }
 
     async function fetchWithTimeout(url, options = {}, timeoutMs = REMOTE_FETCH_TIMEOUT_MS) {
@@ -869,17 +874,27 @@
     async function loadRemote() {
       const apiUrl = getSheetsApiUrl();
       if (!apiUrl) throw new Error('구글시트 URL이 설정되지 않았습니다.');
+      const entry = loadEntrySession() || {};
+      const params = new URLSearchParams({
+        action: 'getContract',
+        id: String(getQueryContractId() || '').trim(),
+        customerId: String(entry.customerId || '').trim(),
+        contractNo: String(entry.contractNo || '').trim(),
+        name: String(entry.name || '').trim(),
+        phone: toDigits(entry.phone || ''),
+        t: String(Date.now())
+      });
       const sep = apiUrl.includes('?') ? '&' : '?';
-      const res = await fetchWithTimeout(`${apiUrl}${sep}action=load&t=${Date.now()}`, {
+      const res = await fetchWithTimeout(`${apiUrl}${sep}${params.toString()}`, {
         method: 'GET',
         cache: 'no-store'
       });
       if (!res.ok) throw new Error(`연동 서버 오류 (${res.status})`);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || '구글시트 데이터 로드 실패');
-      const remoteContracts = Array.isArray(data.contracts) ? data.contracts : [];
-      state.contracts = mergeContractFieldsFromLocal(remoteContracts);
-      state.asRequests = Array.isArray(data.asRequests) ? data.asRequests : [];
+      const remoteContract = data.contract ? mergeContractFieldsFromLocal([data.contract])[0] : null;
+      state.contracts = remoteContract ? [remoteContract] : [];
+      state.asRequests = [];
       state.source = 'sheets';
       saveLocal();
     }

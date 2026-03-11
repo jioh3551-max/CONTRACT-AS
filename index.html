@@ -342,7 +342,10 @@
     const SHEETS_API_URL_KEY = 'aikongkong_sheets_api_url';
     const ADMIN_CACHE_KEY = 'aikongkong_admin_users_v1';
     const ADMIN_CACHE_UPDATED_AT_KEY = 'aikongkong_admin_users_updated_at_v1';
-    const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec';
+    const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbwXzHRK86DjFBUtxvg5nhKaIl7Zaqq7Qm2P6Et7Db3fBEq2j5abLaBVxGSBmqX2WZ6V/exec';
+    const LEGACY_SHEETS_API_URLS = [
+      'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec'
+    ];
     const ADMIN_CACHE_MAX_AGE_MS = 60 * 1000;
     const ADMIN_FETCH_TIMEOUT_MS = 5000;
     const CUSTOMER_FETCH_TIMEOUT_MS = 15000;
@@ -394,7 +397,9 @@
 
     function getSheetsApiUrl() {
       const fromLocal = String(localStorage.getItem(SHEETS_API_URL_KEY) || '').trim();
-      return fromLocal || DEFAULT_SHEETS_API_URL;
+      if (fromLocal && !LEGACY_SHEETS_API_URLS.includes(fromLocal)) return fromLocal;
+      localStorage.setItem(SHEETS_API_URL_KEY, DEFAULT_SHEETS_API_URL);
+      return DEFAULT_SHEETS_API_URL;
     }
 
     function isManualEntryMode() {
