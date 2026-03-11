@@ -96,7 +96,97 @@
       font-weight: 600;
     }
 
+    .login-guide {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .guide-card {
+      border: 1px solid rgba(166, 181, 197, 0.25);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.56);
+      padding: 12px;
+      min-height: 96px;
+    }
+
+    .guide-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      color: #2a3443;
+      letter-spacing: -0.02em;
+    }
+
+    .guide-card span {
+      color: var(--soft-text);
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
     .field { margin-bottom: 12px; }
+
+    .remember-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin: 2px 0 10px;
+      flex-wrap: wrap;
+    }
+
+    .remember-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: #5f6777;
+      cursor: pointer;
+    }
+
+    .remember-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      accent-color: var(--mint-deep);
+      cursor: pointer;
+      padding: 0;
+      box-shadow: none;
+    }
+
+    .remember-clear {
+      border: 0;
+      background: transparent;
+      color: #6b8fa5;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .remember-clear[hidden] {
+      display: none;
+    }
+
+    .remembered-box {
+      margin: 0 0 10px;
+      border: 1px solid rgba(72, 183, 182, 0.16);
+      border-radius: 14px;
+      background: rgba(232, 245, 244, 0.8);
+      color: #236f6f;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .remembered-box[hidden] {
+      display: none;
+    }
 
     label {
       display: block;
@@ -226,6 +316,12 @@
         box-shadow: 0 26px 54px rgba(43, 67, 78, 0.24);
       }
     }
+
+    @media (max-width: 380px) {
+      .login-guide {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -237,6 +333,20 @@
     <section class="panel">
       <h1 class="welcome">Welcome</h1>
       <p class="welcome-sub">이름과 연락처를 입력하면 고객/관리자 화면으로 자동 이동됩니다.</p>
+      <div class="login-guide">
+        <div class="guide-card">
+          <strong>시공자 빠른 진입</strong>
+          <span>자동 로그인을 켜두면 다음부터 이름과 연락처를 다시 입력하지 않아도 됩니다.</span>
+        </div>
+        <div class="guide-card">
+          <strong>고객 계약 확인</strong>
+          <span>등록된 계약이면 바로 고객 전용 페이지로 이동해 계약과 AS 내역을 볼 수 있습니다.</span>
+        </div>
+        <div class="guide-card">
+          <strong>현장 대응</strong>
+          <span>계약서, AS 접수, 처리 확인서까지 한 흐름으로 이어지도록 구성되어 있습니다.</span>
+        </div>
+      </div>
 
       <form id="entryLoginForm">
         <div class="field">
@@ -254,13 +364,22 @@
           </div>
         </div>
 
+        <div class="remember-row">
+          <label class="remember-label" for="rememberAdminCheck">
+            <input id="rememberAdminCheck" type="checkbox" />
+            <span>시공자 자동 로그인</span>
+          </label>
+          <button id="clearSavedLoginBtn" class="remember-clear" type="button" hidden>저장된 로그인 해제</button>
+        </div>
+        <div id="rememberedLoginHint" class="remembered-box" hidden></div>
+
         <button class="btn" type="submit">로그인</button>
       </form>
 
       <div id="entryMsg" class="notice"></div>
 
       <div class="bottom">
-        <div class="support">지원문의 : jioh3551@gmail.com</div>
+        <div class="support">지원문의 : ikongkongmat@naver.com</div>
         <a class="faq-link" href="./faq.html">FAQ 바로가기 <span class="arrow">›</span></a>
       </div>
     </section>
@@ -268,6 +387,7 @@
 
   <script>
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
+    const AUTO_ADMIN_LOGIN_KEY = 'aikongkong_auto_admin_login_v1';
     const SHEETS_API_URL_KEY = 'aikongkong_sheets_api_url';
     const ADMIN_CACHE_KEY = 'aikongkong_admin_users_v1';
     const ADMIN_CACHE_UPDATED_AT_KEY = 'aikongkong_admin_users_updated_at_v1';
@@ -324,6 +444,74 @@
     function getSheetsApiUrl() {
       const fromLocal = String(localStorage.getItem(SHEETS_API_URL_KEY) || '').trim();
       return fromLocal || DEFAULT_SHEETS_API_URL;
+    }
+
+    function isManualEntryMode() {
+      return new URLSearchParams(location.search).get('manual') === '1';
+    }
+
+    function readAutoAdminLogin() {
+      try {
+        const raw = localStorage.getItem(AUTO_ADMIN_LOGIN_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (!parsed || parsed.role !== 'admin') return null;
+        const phone = normalizeAdminPhone(parsed.phone);
+        if (!phone) return null;
+        return {
+          role: 'admin',
+          adminId: String(parsed.adminId || ''),
+          name: String(parsed.name || '').trim(),
+          phone,
+          savedAt: String(parsed.savedAt || '')
+        };
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function saveAutoAdminLogin(admin, fallbackName, phone) {
+      const normalizedPhone = normalizeAdminPhone(phone);
+      if (!normalizedPhone) return;
+      localStorage.setItem(AUTO_ADMIN_LOGIN_KEY, JSON.stringify({
+        role: 'admin',
+        adminId: String(admin?.id || ''),
+        name: String(admin?.name || fallbackName || '').trim(),
+        phone: normalizedPhone,
+        savedAt: new Date().toISOString()
+      }));
+      syncRememberedLoginUi();
+    }
+
+    function clearAutoAdminLogin() {
+      localStorage.removeItem(AUTO_ADMIN_LOGIN_KEY);
+      syncRememberedLoginUi();
+    }
+
+    function syncRememberedLoginUi() {
+      const remembered = readAutoAdminLogin();
+      const clearBtn = $('#clearSavedLoginBtn');
+      const hint = $('#rememberedLoginHint');
+      clearBtn.hidden = !remembered;
+      if (remembered) {
+        $('#rememberAdminCheck').checked = true;
+        if (!$('#nameInput').value.trim()) $('#nameInput').value = remembered.name;
+        if (!$('#phoneInput').value.trim()) $('#phoneInput').value = remembered.phone;
+        hint.hidden = false;
+        hint.textContent = `저장된 시공자 로그인: ${remembered.name || '-'} / ${remembered.phone || '-'} · 이 기기에서는 첫 화면 진입 시 자동으로 관리자 페이지로 이동합니다.`;
+      } else {
+        hint.hidden = true;
+        hint.textContent = '';
+      }
+    }
+
+    function startAdminSession(admin, name, phone) {
+      sessionStorage.setItem(ENTRY_SESSION_KEY, JSON.stringify({
+        role: 'admin',
+        adminId: String(admin?.id || ''),
+        name: admin?.name || name,
+        phone: normalizeAdminPhone(phone),
+        loggedAt: new Date().toISOString()
+      }));
     }
 
     function mergeAdminsWithBuiltin(admins) {
@@ -490,6 +678,12 @@
       $('#nameInput').focus();
     });
 
+    $('#clearSavedLoginBtn').addEventListener('click', () => {
+      clearAutoAdminLogin();
+      $('#rememberAdminCheck').checked = false;
+      showMsg('저장된 시공자 자동 로그인을 해제했습니다.');
+    });
+
     $('#entryLoginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.currentTarget;
@@ -518,13 +712,12 @@
 
       matchedAdmin = matchedAdmin || findAdminByPhone(phone, admins);
       if (matchedAdmin) {
-        sessionStorage.setItem(ENTRY_SESSION_KEY, JSON.stringify({
-          role: 'admin',
-          adminId: String(matchedAdmin.id || ''),
-          name: matchedAdmin.name || name,
-          phone,
-          loggedAt: new Date().toISOString()
-        }));
+        startAdminSession(matchedAdmin, name, phone);
+        if ($('#rememberAdminCheck').checked) {
+          saveAutoAdminLogin(matchedAdmin, name, phone);
+        } else {
+          clearAutoAdminLogin();
+        }
         location.href = './admin.html';
         return;
       }
@@ -580,7 +773,36 @@
     if (!localStorage.getItem(ADMIN_CACHE_KEY)) {
       setCachedAdmins(BUILTIN_ADMINS);
     }
+    syncRememberedLoginUi();
     refreshAdminsFromSheets(false).catch(() => {});
+
+    (async function maybeAutoLoginAdmin() {
+      if (isManualEntryMode()) return;
+
+      const remembered = readAutoAdminLogin();
+      if (!remembered) return;
+
+      showMsg('저장된 시공자 로그인 정보를 확인 중입니다.');
+
+      let admins = getCachedAdmins();
+      let matchedAdmin = findAdminByPhone(remembered.phone, admins);
+      try {
+        if (!matchedAdmin || !isAdminCacheFresh()) {
+          admins = await refreshAdminsFromSheets(true);
+          matchedAdmin = findAdminByPhone(remembered.phone, admins);
+        }
+      } catch (_) {}
+
+      matchedAdmin = matchedAdmin || findAdminByPhone(remembered.phone, admins);
+      if (!matchedAdmin) {
+        clearAutoAdminLogin();
+        clearMsg();
+        return;
+      }
+
+      startAdminSession(matchedAdmin, remembered.name, remembered.phone);
+      location.href = './admin.html';
+    })();
 
     enableDevAutoReload();
   </script>

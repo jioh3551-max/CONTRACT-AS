@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -82,6 +82,101 @@
 
     .success { background: var(--green-soft); border-color: #a7f3d0; color: #065f46; }
     .error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+
+    .hero-card {
+      margin-bottom: 14px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,251,255,0.96) 100%);
+    }
+
+    .hero-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .hero-title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      font-weight: 900;
+    }
+
+    .hero-sub {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .step-guide {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .step-guide-item {
+      border: 1px solid #e5ebf3;
+      border-radius: 16px;
+      background: #fbfdff;
+      padding: 14px;
+    }
+
+    .step-guide-item strong {
+      display: inline-flex;
+      width: 26px;
+      height: 26px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .step-guide-item div {
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+
+    .status-summary {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
 
     .nav {
       display: flex;
@@ -296,6 +391,8 @@
       .item-head { flex-direction: column; }
       .container { padding: 14px 10px 64px; }
       .brand { font-size: 20px; }
+      .hero-title { font-size: 24px; }
+      .step-guide { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -311,6 +408,18 @@
     </div>
 
     <div id="dataSourceNotice" class="notice" style="margin-bottom:14px;"></div>
+
+    <section id="customerHeroCard" class="card hero-card">
+      <div class="hero-head">
+        <div>
+          <div class="eyebrow">빠른 확인</div>
+          <h2 id="customerHeroTitle" class="hero-title">계약 정보를 확인 중입니다.</h2>
+          <p id="customerHeroSub" class="hero-sub">등록된 계약과 AS 접수 상태를 불러오고 있습니다.</p>
+        </div>
+        <div id="customerHeroBadges" class="hero-badges"></div>
+      </div>
+      <div id="customerHeroActions" class="hero-actions"></div>
+    </section>
 
     <div class="nav">
       <button data-page="customerContractPage" class="active">내 계약정보</button>
@@ -333,6 +442,20 @@
         <h2>AS 접수</h2>
         <div id="asFormEmpty" class="empty">계약 정보 확인 후 접수할 수 있습니다.</div>
         <div id="asFormWrap" style="display:none;">
+          <div class="step-guide">
+            <div class="step-guide-item">
+              <strong>1</strong>
+              <div>문제 부위를 가까이서 찍고, 가능한 경우 전체 위치도 함께 촬영해 주세요.</div>
+            </div>
+            <div class="step-guide-item">
+              <strong>2</strong>
+              <div>들뜸, 벌어짐, 마감 등 증상과 위치를 상세 내용에 적어주시면 확인이 빨라집니다.</div>
+            </div>
+            <div class="step-guide-item">
+              <strong>3</strong>
+              <div>접수 후 담당 시공자 또는 본사에서 연락드리며, 처리되면 내 AS 내역에서 바로 확인할 수 있습니다.</div>
+            </div>
+          </div>
           <form id="customerAsForm">
             <div class="field">
               <label>AS 유형</label>
@@ -371,6 +494,7 @@
     <section id="customerAsListPage" class="page">
       <div class="card">
         <h2>내 AS 내역</h2>
+        <div id="customerAsStatusSummary" class="status-summary"></div>
         <div id="customerAsListEmpty" class="empty">아직 접수된 AS 내역이 없습니다.</div>
         <div id="customerAsList" class="item-list"></div>
       </div>
@@ -894,6 +1018,60 @@
       return '<span class="badge">접수중</span>';
     }
 
+    function renderCustomerHero() {
+      const titleEl = $('#customerHeroTitle');
+      const subEl = $('#customerHeroSub');
+      const badgesEl = $('#customerHeroBadges');
+      const actionsEl = $('#customerHeroActions');
+      if (!titleEl || !subEl || !badgesEl || !actionsEl) return;
+
+      if (!state.currentCustomer) {
+        titleEl.textContent = '계약 정보를 확인 중입니다.';
+        subEl.textContent = '등록된 계약과 AS 접수 상태를 불러오고 있습니다.';
+        badgesEl.innerHTML = '';
+        actionsEl.innerHTML = '<a class="btn outline" href="./index.html?manual=1">처음 화면으로</a>';
+        return;
+      }
+
+      const c = state.currentCustomer;
+      const asItems = getMyAsItems();
+      const pendingCount = asItems.filter((item) => String(item.status || '') !== '처리완료').length;
+      const completedCount = asItems.filter((item) => String(item.status || '') === '처리완료').length;
+      const installerPhone = toDigits(c.installerPhone || '');
+      const installerLabel = c.installerName ? `${c.installerName} 시공자` : '담당 시공자';
+
+      titleEl.textContent = `${c.customerName || '고객'} 고객님, 바로 확인할 수 있어요`;
+      subEl.textContent = `${c.contractNo || '-'} · ${c.installDate || '-'} 시공 · ${c.product || '-'}${c.color ? ` / ${c.color}` : ''}`;
+      badgesEl.innerHTML = `
+        <span class="badge">진행 중 AS ${pendingCount}건</span>
+        <span class="badge ${completedCount ? 'green' : ''}">처리완료 ${completedCount}건</span>
+        <span class="badge">시공차수 ${c.installRound || '-'}</span>
+      `;
+      actionsEl.innerHTML = `
+        <button id="heroGoAsBtn" class="btn primary" type="button">AS 접수하기</button>
+        <button id="heroCopyContractBtn" class="btn outline" type="button">계약번호 복사</button>
+        ${installerPhone ? `<a class="btn secondary" href="tel:${installerPhone}">${installerLabel} 연락</a>` : ''}
+      `;
+
+      $('#heroGoAsBtn')?.addEventListener('click', () => goPage('customerAsFormPage'));
+      $('#heroCopyContractBtn')?.addEventListener('click', () => copyText(c.contractNo, '계약번호'));
+    }
+
+    function renderAsStatusSummary() {
+      const wrap = $('#customerAsStatusSummary');
+      if (!wrap) return;
+      const items = getMyAsItems();
+      const pendingCount = items.filter((item) => String(item.status || '') === '접수중').length;
+      const workingCount = items.filter((item) => String(item.status || '') === '처리중').length;
+      const doneCount = items.filter((item) => String(item.status || '') === '처리완료').length;
+      wrap.innerHTML = `
+        <span class="badge">전체 ${items.length}건</span>
+        <span class="badge">접수중 ${pendingCount}건</span>
+        <span class="badge yellow">처리중 ${workingCount}건</span>
+        <span class="badge green">처리완료 ${doneCount}건</span>
+      `;
+    }
+
     function renderCustomerContract() {
       const empty = $('#customerContractEmpty');
       const content = $('#customerContractContent');
@@ -909,6 +1087,10 @@
       content.style.display = 'block';
 
       const c = state.currentCustomer;
+      const installerPhone = toDigits(c.installerPhone || '');
+      const installerAction = installerPhone
+        ? `<a class="btn secondary" href="tel:${installerPhone}">담당 시공자 연락</a>`
+        : `<a class="btn secondary" href="tel:16702659">고객센터 연락</a>`;
       const signHtml = c.signatureImage
         ? `<div style="margin-top:10px;"><div class="muted">전자서명</div><img class="thumb-sign" src="${c.signatureImage}" alt="전자서명" /></div>`
         : '';
@@ -927,7 +1109,7 @@
           ${signHtml}
           <div class="actions">
             <button class="btn outline" type="button" id="copyContractBtn">계약번호 복사</button>
-            <a class="btn secondary" href="tel:${toDigits(c.phone)}">고객 연락처로 전화</a>
+            ${installerAction}
             <a class="btn secondary" href="./contract.html?id=${encodeURIComponent(c.id || '')}" target="_blank" rel="noopener">계약서 페이지 열기</a>
           </div>
         </div>
@@ -1018,8 +1200,10 @@
     }
 
     function renderAll() {
+      renderCustomerHero();
       renderCustomerContract();
       renderAsForm();
+      renderAsStatusSummary();
       renderAsList();
     }
 

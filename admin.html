@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -163,6 +163,69 @@
       gap: 12px;
     }
 
+    .quick-overview {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .quick-action-card {
+      border: 1px solid #d9e5f1;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #ffffff 0%, #f6fbff 100%);
+      padding: 15px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .quick-action-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+      border-color: rgba(47, 145, 145, 0.3);
+    }
+
+    .quick-label {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .quick-value {
+      display: block;
+      font-size: 22px;
+      line-height: 1.2;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: #182230;
+    }
+
+    .quick-meta {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+
+    .summary-helper {
+      margin: 12px 0 0;
+      border: 1px solid #d9ebe8;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(232, 245, 244, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%);
+      padding: 13px 14px;
+      color: #236f6f;
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.6;
+    }
+
     .stat {
       border: 1px solid #e7e9ee;
       border-radius: 18px;
@@ -172,6 +235,31 @@
 
     .stat .k { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
     .stat .v { font-size: 30px; font-weight: 900; letter-spacing: -0.02em; }
+
+    .status-chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .status-chip {
+      border: 1px solid #dde5ef;
+      border-radius: 999px;
+      background: #fff;
+      color: #4d5a6d;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .status-chip.active {
+      background: linear-gradient(180deg, #48b7b6 0%, #2f9191 100%);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 8px 14px rgba(47, 145, 145, 0.22);
+    }
 
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .full { grid-column: 1 / -1; }
@@ -922,7 +1010,7 @@
     }
 
     @media (max-width: 920px) {
-      .stats, .grid { grid-template-columns: 1fr; }
+      .stats, .grid, .quick-overview { grid-template-columns: 1fr; }
       .paper-config-grid { grid-template-columns: 1fr; }
       .check-grid { grid-template-columns: 1fr 1fr; }
       .paper-terms { grid-template-columns: 1fr; }
@@ -1018,11 +1106,29 @@
 
     <section class="card section-gap" id="adminStatsCard">
       <h2>운영 요약</h2>
+      <div class="quick-overview">
+        <button class="quick-action-card" type="button" data-go-view="contract">
+          <span class="quick-label">빠른 실행</span>
+          <strong id="quickContractValue" class="quick-value">신규 계약 등록</strong>
+          <div id="quickContractMeta" class="quick-meta">지금 바로 고객 계약서를 작성할 수 있습니다.</div>
+        </button>
+        <button class="quick-action-card" type="button" data-go-view="as">
+          <span class="quick-label">AS 처리</span>
+          <strong id="quickAsValue" class="quick-value">처리 대기 0건</strong>
+          <div id="quickAsMeta" class="quick-meta">접수된 고객 AS를 확인하고 처리 확인서를 작성합니다.</div>
+        </button>
+        <button class="quick-action-card" type="button" data-go-view="installer">
+          <span class="quick-label">시공자 정보</span>
+          <strong id="quickInstallerValue" class="quick-value">기본 서명 확인</strong>
+          <div id="quickInstallerMeta" class="quick-meta">서명과 기본정보가 저장돼 있으면 현장 확인서가 더 빨라집니다.</div>
+        </button>
+      </div>
       <div class="stats">
         <div class="stat"><div class="k">전체 계약</div><div class="v" id="statTotal">0</div></div>
         <div class="stat"><div class="k">오늘 등록</div><div class="v" id="statToday">0</div></div>
         <div class="stat"><div class="k">총 AS 접수</div><div class="v" id="statFiltered">0</div></div>
       </div>
+      <div id="summaryHelper" class="summary-helper">오늘 확인할 작업을 계산 중입니다.</div>
       <div class="toolbar" style="margin-top:12px;">
         <input id="summaryContractSearch" placeholder="내 계약 검색 (검색 시 과거 내역 포함)" />
         <button class="btn secondary" type="button" id="summaryReloadBtn">계약내역 불러오기</button>
@@ -1284,6 +1390,12 @@
           <option value="처리완료">처리완료</option>
         </select>
         <button class="btn secondary" type="button" id="asReloadBtn">고객 신청내역 불러오기</button>
+      </div>
+      <div class="status-chip-row" id="asStatusChipRow">
+        <button class="status-chip active" type="button" data-as-status-chip="all">전체</button>
+        <button class="status-chip" type="button" data-as-status-chip="접수중">접수중</button>
+        <button class="status-chip" type="button" data-as-status-chip="처리중">처리중</button>
+        <button class="status-chip" type="button" data-as-status-chip="처리완료">처리완료</button>
       </div>
       <div class="list-meta" id="asMeta">-</div>
       <div id="adminAsList" class="item-list"></div>
@@ -2855,9 +2967,27 @@
       const myContracts = getMyInstallerContractsSorted();
       const myAsRequests = getMyInstallerAsRequests();
       const todayCount = myContracts.filter((item) => String(item.createdAt || '').startsWith(today)).length;
+      const pendingAsCount = myAsRequests.filter((item) => String(item.status || '') !== '처리완료').length;
+      const completedAsCount = myAsRequests.filter((item) => String(item.status || '') === '처리완료').length;
+      const hasInstallerSignature = Boolean(String(state.installerProfile?.signatureImage || '').trim());
       $('#statTotal').textContent = String(myContracts.length);
       $('#statToday').textContent = String(todayCount);
       $('#statFiltered').textContent = String(myAsRequests.length);
+      $('#quickContractValue').textContent = myContracts.length ? `최근 계약 ${myContracts.length}건` : '신규 계약 등록';
+      $('#quickContractMeta').textContent = myContracts.length
+        ? `오늘 등록 ${todayCount}건 · 최근 계약을 불러와 수정할 수 있습니다.`
+        : '아직 내 계약이 없습니다. 첫 계약을 바로 등록해보세요.';
+      $('#quickAsValue').textContent = `처리 대기 ${pendingAsCount}건`;
+      $('#quickAsMeta').textContent = myAsRequests.length
+        ? `처리완료 ${completedAsCount}건 · 고객 신청내용과 확인서를 바로 관리할 수 있습니다.`
+        : '아직 접수된 AS가 없습니다. 접수되면 이곳에서 바로 처리할 수 있습니다.';
+      $('#quickInstallerValue').textContent = hasInstallerSignature ? '기본 서명 준비됨' : '기본 서명 미저장';
+      $('#quickInstallerMeta').textContent = hasInstallerSignature
+        ? `저장된 시공자 서명을 AS 확인서와 계약서에 자동으로 사용합니다.`
+        : '시공자 정보 탭에서 서명을 저장해두면 현장 확인서 작성이 빨라집니다.';
+      $('#summaryHelper').textContent = pendingAsCount
+        ? `오늘 우선 확인할 작업은 AS 처리 ${pendingAsCount}건입니다. 고객 신청 내용을 확인하고 처리하기로 바로 이동해 보세요.`
+        : `오늘은 신규 계약 등록과 시공자 기본정보 점검 위주로 진행하면 됩니다.`;
     }
 
     function renderSummaryContractList() {
@@ -2941,9 +3071,14 @@
       const myTotal = getMyInstallerAsRequests().length;
       const items = filterAsRequests();
       $('#asMeta').textContent = `내 시공 고객 AS ${myTotal}건 / 현재 ${items.length}건 표시`;
+      $$('[data-as-status-chip]').forEach((chip) => {
+        chip.classList.toggle('active', chip.dataset.asStatusChip === state.asFilterStatus);
+      });
 
       if (!items.length) {
-        el.innerHTML = '<div class="notice">조건에 맞는 내 고객 AS 신청이 없습니다.</div>';
+        el.innerHTML = myTotal
+          ? '<div class="notice">조건에 맞는 AS 신청이 없습니다. 상태 칩이나 검색어를 바꿔보세요.</div>'
+          : '<div class="notice">아직 내 시공 고객의 AS 신청이 없습니다. 고객이 접수하면 이곳에 바로 표시됩니다.</div>';
         return;
       }
 
@@ -3337,9 +3472,24 @@
       renderAdminAsList();
     });
 
+    $$('[data-as-status-chip]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        state.asFilterStatus = chip.dataset.asStatusChip || 'all';
+        $('#asStatusFilter').value = state.asFilterStatus;
+        renderAdminAsList();
+      });
+    });
+
     $$('[data-admin-view-btn]').forEach((btn) => {
       btn.addEventListener('click', () => {
         setAdminView(btn.dataset.adminViewBtn);
+      });
+    });
+
+    $$('[data-go-view]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        setAdminView(btn.dataset.goView);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     });
 
@@ -3558,4 +3708,3 @@
   </script>
 </body>
 </html>
-
