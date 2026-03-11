@@ -975,11 +975,10 @@
       ].join('\n');
     }
 
-    function buildContractSmsText(contract) {
+    function buildContractSmsText() {
       return [
-        '아이콩콩 계약서 확인 및 AS 접수 링크입니다.',
-        `계약서 확인: ${getShareTargetUrl(contract)}`,
-        `AS 접수: ${SHARE_SITE_URL}`
+        '아이콩콩 계약서 확인 및 A/S 접수 링크입니다.',
+        SHARE_SITE_URL
       ].join('\n');
     }
 
