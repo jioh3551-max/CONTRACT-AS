@@ -96,36 +96,6 @@
       font-weight: 600;
     }
 
-    .login-guide {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .guide-card {
-      border: 1px solid rgba(166, 181, 197, 0.25);
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.56);
-      padding: 12px;
-      min-height: 96px;
-    }
-
-    .guide-card strong {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
-      color: #2a3443;
-      letter-spacing: -0.02em;
-    }
-
-    .guide-card span {
-      color: var(--soft-text);
-      font-size: 12px;
-      line-height: 1.55;
-      font-weight: 700;
-    }
-
     .field { margin-bottom: 12px; }
 
     .remember-row {
@@ -317,11 +287,6 @@
       }
     }
 
-    @media (max-width: 380px) {
-      .login-guide {
-        grid-template-columns: 1fr;
-      }
-    }
   </style>
 </head>
 <body>
@@ -333,20 +298,6 @@
     <section class="panel">
       <h1 class="welcome">Welcome</h1>
       <p class="welcome-sub">이름과 연락처를 입력하면 고객/관리자 화면으로 자동 이동됩니다.</p>
-      <div class="login-guide">
-        <div class="guide-card">
-          <strong>시공자 빠른 진입</strong>
-          <span>자동 로그인을 켜두면 다음부터 이름과 연락처를 다시 입력하지 않아도 됩니다.</span>
-        </div>
-        <div class="guide-card">
-          <strong>고객 계약 확인</strong>
-          <span>등록된 계약이면 바로 고객 전용 페이지로 이동해 계약과 AS 내역을 볼 수 있습니다.</span>
-        </div>
-        <div class="guide-card">
-          <strong>현장 대응</strong>
-          <span>계약서, AS 접수, 처리 확인서까지 한 흐름으로 이어지도록 구성되어 있습니다.</span>
-        </div>
-      </div>
 
       <form id="entryLoginForm">
         <div class="field">
