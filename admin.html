@@ -957,7 +957,7 @@
     <div class="quick-links section-gap">
       <a class="link" href="./contracts.html">저장된 계약목록</a>
       <a class="link" href="./contract.html">계약서 페이지</a>
-      <a class="link" href="./index.html">처음 화면</a>
+      <a class="link" href="./index.html?manual=1">처음 화면</a>
     </div>
 
     <div id="apiStatus" class="notice section-gap">Google Sheets 연동 상태를 확인 중입니다.</div>
@@ -1274,7 +1274,7 @@
 
     <section class="card section-gap hidden-view" id="adminAsCard">
       <h2>AS 신청 내역</h2>
-      <div class="notice">내가 시공한 고객이 접수한 AS만 목록으로 표시됩니다. 카드를 누르면 상세 페이지에서 처리 상태와 메모를 저장할 수 있습니다.</div>
+      <div class="notice">내가 시공한 고객이 접수한 AS만 목록으로 표시됩니다. 고객 신청 내용은 따로 보고, <strong>처리하기</strong> 버튼에서 AS 확인서를 작성해 고객 서명까지 받을 수 있습니다.</div>
       <div class="toolbar">
         <input id="asSearchInput" placeholder="고객명, 연락처, 접수번호, 내용 검색" />
         <select id="asStatusFilter">
@@ -1339,8 +1339,10 @@
       contracts: [],
       asRequests: [],
       source: 'local',
+      currentAdminId: '',
       currentAdminName: '',
       currentAdminPhone: '',
+      currentAdminRecord: null,
       filterKeyword: '',
       asFilterKeyword: '',
       asFilterStatus: 'all',
@@ -1885,15 +1887,20 @@
     }
 
     function saveLocal() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ contracts: state.contracts, asRequests: state.asRequests }));
+      const contracts = Array.isArray(state.contracts) ? state.contracts : [];
+      const asRequests = Array.isArray(state.asRequests) ? state.asRequests : [];
+      if (!contracts.length && !asRequests.length) {
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ contracts, asRequests }));
     }
 
     function loadLocal() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
-        state.contracts = [...seedData.contracts];
-        state.asRequests = normalizeAsRequests([...seedData.asRequests]);
-        saveLocal();
+        state.contracts = [];
+        state.asRequests = [];
         return;
       }
       const parsed = JSON.parse(raw);
@@ -1902,7 +1909,16 @@
     }
 
     function hasStoredLocalData() {
-      return !!String(localStorage.getItem(STORAGE_KEY) || '').trim();
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        const contractCount = Array.isArray(parsed?.contracts) ? parsed.contracts.length : 0;
+        const asCount = Array.isArray(parsed?.asRequests) ? parsed.asRequests.length : 0;
+        return contractCount > 0 || asCount > 0;
+      } catch (_) {
+        return false;
+      }
     }
 
     function getLocalContractsBackup() {
@@ -1987,7 +2003,6 @@
         return merged;
       });
 
-      localMap.forEach((item) => mergedList.push(item));
       return mergedList;
     }
 
@@ -2008,6 +2023,11 @@
       const remoteContracts = Array.isArray(data.contracts) ? data.contracts : [];
       state.contracts = mergeContractFieldsFromLocal(remoteContracts);
       state.asRequests = normalizeAsRequests(Array.isArray(data.asRequests) ? data.asRequests : []);
+      state.currentAdminRecord = findCurrentAdminRecord(Array.isArray(data.admins) ? data.admins : []);
+      if (state.currentAdminRecord) {
+        state.currentAdminId = state.currentAdminRecord.id || state.currentAdminId;
+        mergeInstallerProfileFromAdmin(state.currentAdminRecord);
+      }
       state.source = 'sheets';
       saveLocal();
       return data;
@@ -2108,6 +2128,29 @@
       return d.toLocaleString('ko-KR');
     }
 
+    function parseSavedTime(value) {
+      const text = String(value || '').trim();
+      if (!text) return 0;
+      const time = new Date(text).getTime();
+      return Number.isNaN(time) ? 0 : time;
+    }
+
+    function normalizeAdminSheetRecord(record, fallback = {}) {
+      const source = record && typeof record === 'object' ? record : {};
+      return {
+        id: String(source.id || fallback?.id || '').trim(),
+        name: String(source.name || fallback?.name || '').trim(),
+        phone: toDigits(source.phone || fallback?.phone || ''),
+        address: String(source.address || fallback?.address || '').trim(),
+        signatureImage: String(source.signatureImage || fallback?.signatureImage || '').trim(),
+        savedAt: String(source.savedAt || fallback?.savedAt || '').trim(),
+        signatureSavedAt: String(source.signatureSavedAt || fallback?.signatureSavedAt || '').trim(),
+        isActive: String(source.isActive || fallback?.isActive || 'Y').trim() || 'Y',
+        createdAt: String(source.createdAt || fallback?.createdAt || '').trim(),
+        updatedAt: String(source.updatedAt || fallback?.updatedAt || '').trim()
+      };
+    }
+
     function normalizeInstallerProfileRecord(profile, defaultProfile = {}) {
       const source = profile && typeof profile === 'object' ? profile : {};
       return {
@@ -2118,6 +2161,91 @@
         savedAt: String(source.savedAt || ''),
         signatureSavedAt: String(source.signatureSavedAt || source.savedAt || '')
       };
+    }
+
+    function findCurrentAdminRecord(admins = []) {
+      const targetId = String(state.currentAdminId || '').trim();
+      const targetPhone = toDigits(state.currentAdminPhone || '');
+      const targetName = normalizeText(state.currentAdminName || '');
+
+      return (Array.isArray(admins) ? admins : [])
+        .map((item) => normalizeAdminSheetRecord(item))
+        .find((item) => {
+          if (targetId && item.id && item.id === targetId) return true;
+          if (targetPhone && toDigits(item.phone) === targetPhone) return true;
+          if (targetName && normalizeText(item.name) === targetName) return true;
+          return false;
+        }) || null;
+    }
+
+    function mergeInstallerProfileFromAdmin(adminRecord) {
+      if (!adminRecord) return;
+
+      const local = normalizeInstallerProfileRecord(state.installerProfile, {
+        name: state.currentAdminName,
+        phone: state.currentAdminPhone,
+        address: ''
+      });
+      const remote = normalizeInstallerProfileRecord({
+        name: adminRecord.name,
+        phone: adminRecord.phone,
+        address: adminRecord.address,
+        signatureImage: adminRecord.signatureImage,
+        savedAt: adminRecord.savedAt || adminRecord.updatedAt,
+        signatureSavedAt: adminRecord.signatureSavedAt || adminRecord.updatedAt
+      }, local);
+
+      const remoteUpdated = Math.max(parseSavedTime(remote.savedAt), parseSavedTime(remote.signatureSavedAt));
+      const localUpdated = Math.max(parseSavedTime(local.savedAt), parseSavedTime(local.signatureSavedAt));
+
+      state.installerProfile = remoteUpdated >= localUpdated
+        ? { ...local, ...remote }
+        : {
+            ...local,
+            address: local.address || remote.address,
+            signatureImage: local.signatureImage || remote.signatureImage,
+            savedAt: local.savedAt || remote.savedAt,
+            signatureSavedAt: local.signatureSavedAt || remote.signatureSavedAt
+          };
+
+      saveInstallerProfile();
+      renderInstallerProfile();
+    }
+
+    function buildAdminRemotePayload() {
+      const nowIso = new Date().toISOString();
+      const baseAdmin = normalizeAdminSheetRecord(state.currentAdminRecord, {
+        id: state.currentAdminId,
+        name: state.currentAdminName,
+        phone: state.currentAdminPhone,
+        isActive: 'Y'
+      });
+      const profile = normalizeInstallerProfileRecord(state.installerProfile, baseAdmin);
+
+      return normalizeAdminSheetRecord({
+        id: baseAdmin.id || '',
+        name: profile.name || baseAdmin.name || state.currentAdminName,
+        phone: profile.phone || baseAdmin.phone || state.currentAdminPhone,
+        address: profile.address || baseAdmin.address,
+        signatureImage: profile.signatureImage || baseAdmin.signatureImage,
+        savedAt: profile.savedAt || baseAdmin.savedAt || nowIso,
+        signatureSavedAt: profile.signatureSavedAt || baseAdmin.signatureSavedAt,
+        isActive: baseAdmin.isActive || 'Y',
+        createdAt: baseAdmin.createdAt || nowIso,
+        updatedAt: nowIso
+      });
+    }
+
+    async function syncInstallerProfileRemote() {
+      const payload = buildAdminRemotePayload();
+      const data = await postRemote('saveAdmin', { admin: payload });
+      const savedAdmin = normalizeAdminSheetRecord(data.admin || payload, payload);
+      state.currentAdminId = savedAdmin.id || state.currentAdminId;
+      state.currentAdminRecord = savedAdmin;
+      mergeInstallerProfileFromAdmin(savedAdmin);
+      state.source = 'sheets';
+      updateSourceChip();
+      return savedAdmin;
     }
 
     function getInstallerProfileOwnerKey(fallbackOwner = {}) {
@@ -2825,11 +2953,14 @@
         const product = item.product || linkedContract?.product || '-';
         const address = item.address || linkedContract?.address || '-';
         const detailPreview = makePreviewText(item.requestDetail);
-        const techNoteState = item.techNote ? '처리 메모 있음' : '처리 메모 없음';
+        const techNoteState = item.techNote ? '처리사항 작성됨' : '처리사항 미작성';
+        const signState = item.signatureImage ? '고객 서명 완료' : '고객 서명 전';
         const requestUrl = `./as-detail.html?id=${encodeURIComponent(String(item.id || ''))}`;
+        const processUrl = `./as-process.html?id=${encodeURIComponent(String(item.id || ''))}`;
+        const processLabel = item.signatureImage || item.installerSignatureImage || item.techNote ? '처리 확인서' : '처리하기';
 
         return `
-          <a class="as-item as-link-card" href="${requestUrl}">
+          <div class="as-item">
             <div class="as-head">
               <div>
                 <div class="item-title">${escapeHtml(item.customerName || '-')} / ${escapeHtml(getAsRequestType(item) || '-')}</div>
@@ -2840,10 +2971,14 @@
             <div class="item-line">연락처: ${escapeHtml(item.phone || '-')}<br>계약번호: ${escapeHtml(contractNo)}<br>제품: ${escapeHtml(product)}<br>주소: ${escapeHtml(address)}<br>희망연락시간: ${escapeHtml(item.contactTime || '-')}</div>
             <div class="as-note">고객 신청 내용: ${escapeHtml(detailPreview)}</div>
             <div class="as-open-row">
-              <span class="as-open-label">상세 페이지 열기</span>
-              <span class="muted">${escapeHtml(techNoteState)}</span>
+              <span class="as-open-label">${escapeHtml(techNoteState)}</span>
+              <span class="muted">${escapeHtml(signState)}</span>
             </div>
-          </a>
+            <div class="actions" style="margin-top:12px;">
+              <a class="btn outline tiny" href="${requestUrl}">신청내용 보기</a>
+              <a class="btn secondary tiny" href="${processUrl}">${escapeHtml(processLabel)}</a>
+            </div>
+          </div>
         `;
       }).join('');
     }
@@ -3108,8 +3243,16 @@
       renderInstallerProfile();
       setInstallerSignatureEditor(false);
 
-      $('#saveInstallerProfileBtn').addEventListener('click', () => {
-        saveInstallerBaseProfile(true);
+      $('#saveInstallerProfileBtn').addEventListener('click', async () => {
+        if (!saveInstallerBaseProfile(false)) return;
+        try {
+          await syncInstallerProfileRemote();
+          showStatus('시공자 기본정보가 관리자 시트에 저장되었습니다.', 'success');
+        } catch (err) {
+          state.source = 'local';
+          updateSourceChip();
+          showStatus(`구글시트 저장 실패로 이 기기에만 저장했습니다: ${err.message}`, 'error');
+        }
       });
 
       $('#openInstallerSignatureBtn').addEventListener('click', () => {
@@ -3117,7 +3260,7 @@
         setInstallerSignatureEditor(Boolean(wrap?.hidden));
       });
 
-      $('#saveInstallerSignatureBtn').addEventListener('click', () => {
+      $('#saveInstallerSignatureBtn').addEventListener('click', async () => {
         if (!state.installerProfile) return;
         if (!saveInstallerBaseProfile(false)) return;
 
@@ -3132,7 +3275,14 @@
         saveInstallerProfile();
         renderInstallerProfile();
         setInstallerSignatureEditor(false);
-        showStatus('시공자 서명이 저장되었습니다. 이후 계약 저장 시 자동 반영됩니다.', 'success');
+        try {
+          await syncInstallerProfileRemote();
+          showStatus('시공자 서명이 관리자 시트에 저장되었습니다. 이후 계약 저장 시 자동 반영됩니다.', 'success');
+        } catch (err) {
+          state.source = 'local';
+          updateSourceChip();
+          showStatus(`구글시트 저장 실패로 이 기기에만 저장했습니다: ${err.message}`, 'error');
+        }
       });
     }
 
@@ -3359,6 +3509,7 @@
       const initialView = requestedEditId ? 'contract' : (requestedView || 'summary');
 
       state.adminLoggedIn = true;
+      state.currentAdminId = String(entry.adminId || '').trim();
       state.currentAdminName = String(entry.name || '').trim();
       state.currentAdminPhone = toDigits(entry.phone);
       $('#heroNameText').textContent = `${entry.name} 님`;
@@ -3385,14 +3536,8 @@
       setupSignatureAreas();
       renderContractFormMode();
       setAdminView(initialView);
-      if (hasStoredLocalData()) {
-        loadLocal();
-        state.source = 'local';
-        showStatus('Google Sheets 연동 상태를 확인 중입니다. 현재 로컬 백업을 먼저 표시합니다.');
-      } else {
-        state.source = 'checking';
-        showStatus('Google Sheets 연동 상태를 확인 중입니다.');
-      }
+      state.source = 'checking';
+      showStatus('Google Sheets 연동 상태를 확인 중입니다.');
       updateSourceChip();
       renderContractList();
       renderAdminAsList();
