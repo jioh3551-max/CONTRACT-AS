@@ -507,7 +507,7 @@
         </div>
         <div class="actions">
           <button id="backBtn" class="btn secondary" type="button">뒤로가기</button>
-          <button id="shareImageBtn" class="btn secondary" type="button">이미지 공유</button>
+          <button id="shareImageBtn" class="btn secondary" type="button">카톡 전달하기</button>
           <button id="smsBtn" class="btn secondary" type="button">문자 보내기</button>
           <button id="printBtn" class="btn primary" type="button">인쇄</button>
           <button id="refreshBtn" class="btn secondary" type="button">새로고침</button>
@@ -969,9 +969,17 @@
     function buildContractShareText(contract) {
       const customerName = normalizeContractTextValue(contract?.customerName) || '고객';
       return [
-        `${customerName} 고객님 계약 확인용 양식입니다.`,
+        `${customerName} 고객님 계약 확인용 이미지입니다.`,
         `계약 확인: ${getShareTargetUrl(contract)}`,
         `홈: ${SHARE_SITE_URL}`
+      ].join('\n');
+    }
+
+    function buildContractSmsText(contract) {
+      return [
+        '아이콩콩 계약서 확인 및 AS 접수 링크입니다.',
+        `계약서 확인: ${getShareTargetUrl(contract)}`,
+        `AS 접수: ${SHARE_SITE_URL}`
       ].join('\n');
     }
 
@@ -1072,7 +1080,7 @@
             text: shareText,
             files: [file]
           });
-          setTopState(true, '계약서 이미지를 공유했습니다. 카카오톡이나 문자 앱을 선택해 바로 전송할 수 있습니다.');
+          setTopState(true, '카카오톡 전달 창을 열었습니다. 공유 목록에서 카카오톡을 선택해 보내주세요.');
           return;
         }
 
@@ -1085,12 +1093,12 @@
               text: shareText,
               url: getShareTargetUrl(contract)
             });
-            setTopState(true, '계약서 이미지를 저장했고, 링크도 함께 공유할 수 있게 열었습니다.');
+            setTopState(true, '카카오톡 공유를 열 수 있도록 링크 공유 창을 띄웠습니다.');
             return;
           } catch (_) {}
         }
 
-        setTopState(true, '계약서 이미지를 다운로드했습니다. 카카오톡이나 문자에 첨부하고 링크를 함께 보내주세요.');
+        setTopState(true, '이미지를 저장했습니다. 카카오톡에서 이미지를 선택해 전달해 주세요.');
       } catch (error) {
         if (error?.name === 'AbortError') {
           setTopState(true, '이미지 공유를 취소했습니다.');
@@ -1113,9 +1121,9 @@
         return;
       }
 
-      const body = buildContractShareText(contract);
+      const body = buildContractSmsText(contract);
       location.href = `sms:${phone}?body=${encodeURIComponent(body)}`;
-      setTopState(true, `${phone} 번호로 문자 작성 화면을 열었습니다. 이미지 공유 버튼으로 만든 계약서 이미지를 함께 첨부해 보내주세요.`);
+      setTopState(true, `${phone} 번호로 링크 안내 문자 작성 화면을 열었습니다.`);
     }
 
     function formatDiscountTypes(value) {

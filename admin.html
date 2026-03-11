@@ -766,11 +766,50 @@
       margin-top: 10px;
     }
 
+    .pricing-total-stack {
+      display: grid;
+      gap: 4px;
+      min-width: 220px;
+    }
+
+    .pricing-total-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #475569;
+      white-space: nowrap;
+    }
+
+    .pricing-total-line strong {
+      font-size: 14px;
+      color: #0f172a;
+    }
+
+    .pricing-total-line.is-final {
+      font-size: 15px;
+      color: #0f172a;
+    }
+
+    .pricing-total-line.is-final strong {
+      font-size: 18px;
+    }
+
     .pricing-total {
       font-size: 14px;
       font-weight: 900;
       color: #0f172a;
       white-space: nowrap;
+    }
+
+    .discount-amount-wrap {
+      margin-top: 10px;
+    }
+
+    .discount-amount-wrap input {
+      max-width: 260px;
     }
 
     .paper-config-panel {
@@ -1170,7 +1209,7 @@
                 <div class="paper-line paper-line-payment">
                   <span class="paper-line-label">결제방식 & 결제금액</span>
                   <input class="paper-line-input payment-method" id="paymentMethodInput" name="paymentMethod" list="paymentMethodOptions" placeholder="예: 카드" />
-                  <input class="paper-line-input payment-amount" id="totalPriceInput" name="totalPrice" required inputmode="numeric" placeholder="매트 구성 합계 자동 계산" readonly />
+                  <input class="paper-line-input payment-amount" id="totalPriceInput" name="totalPrice" required inputmode="numeric" placeholder="할인 반영 최종 금액 자동 계산" readonly />
                   <input type="hidden" id="paymentSummaryInput" name="paymentSummary" />
                   <datalist id="paymentMethodOptions">
                     <option value="카드"></option>
@@ -1191,7 +1230,11 @@
                   <div id="productItemList" class="pricing-row-list"></div>
                   <div class="pricing-builder-foot">
                     <div class="pricing-builder-note" id="productCalcSummaryText">매트 종류, 수량, 장당 금액을 입력하면 품명과 결제금액이 자동 계산됩니다.</div>
-                    <div class="pricing-total">합계 <span id="productCalcTotalText">0원</span></div>
+                    <div class="pricing-total-stack">
+                      <div class="pricing-total-line"><span>매트 합계</span><strong id="productCalcBaseTotalText">0원</strong></div>
+                      <div class="pricing-total-line"><span>할인 금액</span><strong id="productCalcDiscountText">0원</strong></div>
+                      <div class="pricing-total-line is-final"><span>최종 결제금액</span><strong id="productCalcTotalText">0원</strong></div>
+                    </div>
                   </div>
                 </div>
                 <div class="paper-config-grid">
@@ -1223,6 +1266,11 @@
                     <label class="check-item"><input type="checkbox" name="discountType" value="베페할인" />베페할인</label>
                     <label class="check-item"><input type="checkbox" name="discountType" value="기타" />기타</label>
                   </div>
+                </div>
+                <div class="discount-amount-wrap">
+                  <label for="discountAmountInput">할인 금액</label>
+                  <input id="discountAmountInput" name="discountAmount" inputmode="numeric" placeholder="예: 30,000" />
+                  <div class="pricing-field-hint">위 매트 합계에서 차감되어 최종 결제금액이 자동 계산됩니다.</div>
                 </div>
                 <div id="discountEtcWrap" style="margin-top:10px;" hidden>
                   <label for="discountEtcInput">기타 할인 상세</label>
@@ -1463,7 +1511,8 @@
       editingContractId: '',
       productItems: [],
       legacyProductSummary: '',
-      legacyTotalPrice: ''
+      legacyTotalPrice: '',
+      legacyBaseTotal: ''
     };
 
     const $ = (s) => document.querySelector(s);
@@ -1626,6 +1675,39 @@
       return [String(paymentMethod || '').trim(), formatMoneyText(totalPrice)].filter(Boolean).join(' / ');
     }
 
+    function supportsHalfQuantityForType(type) {
+      return /1200\s*$/.test(getBaseMatType(type));
+    }
+
+    function normalizeProductQuantity(value, type = '') {
+      const parsed = Number.parseFloat(String(value || '').replace(/,/g, ''));
+      if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+
+      if (supportsHalfQuantityForType(type)) {
+        return Math.floor(parsed * 2) / 2;
+      }
+
+      return Math.floor(parsed);
+    }
+
+    function formatQuantityText(value) {
+      const quantity = Number(value || 0);
+      if (!Number.isFinite(quantity) || quantity <= 0) return '';
+      if (Math.abs(quantity - Math.round(quantity)) < 0.001) return String(Math.round(quantity));
+      return quantity.toFixed(1).replace(/\.0$/, '');
+    }
+
+    function calculateProductSubtotal(item) {
+      const quantity = normalizeProductQuantity(item?.quantity, item?.type);
+      const unitPrice = getAppliedProductItemUnitPrice(item);
+      if (quantity <= 0 || unitPrice <= 0) return 0;
+      return Math.round(unitPrice * quantity);
+    }
+
+    function getDiscountAmountValue() {
+      return Number.parseInt(normalizeMoneyValue($('#discountAmountInput')?.value || ''), 10) || 0;
+    }
+
     function normalizeDateInputValue(value, fallback = '') {
       const raw = String(value || '').trim();
       if (!raw) return fallback;
@@ -1664,7 +1746,7 @@
       return {
         id: makeProductItemId(),
         type: String(type || '').trim(),
-        quantity: Math.max(0, Number.parseInt(quantity, 10) || 0),
+        quantity: normalizeProductQuantity(quantity, type),
         unitPrice: 0
       };
     }
@@ -1673,7 +1755,7 @@
       return (Array.isArray(items) ? items : []).map((item) => ({
         id: String(item?.id || '').trim() || makeProductItemId(),
         type: String(item?.type || '').trim(),
-        quantity: Math.max(0, Number.parseInt(item?.quantity, 10) || 0),
+        quantity: normalizeProductQuantity(item?.quantity, item?.type),
         unitPrice: normalizeUnitPriceValue(item?.unitPrice)
       }));
     }
@@ -1754,11 +1836,11 @@
 
     function buildProductSummary(items = state.productItems) {
       const validItems = getValidProductItems(items);
-      return validItems.map((item) => `${item.type} ${item.quantity}장`).join(', ');
+      return validItems.map((item) => `${item.type} ${formatQuantityText(item.quantity)}장`).join(', ');
     }
 
     function calculateProductTotal(items = state.productItems) {
-      return getValidProductItems(items).reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+      return getValidProductItems(items).reduce((sum, item) => sum + calculateProductSubtotal(item), 0);
     }
 
     function serializeProductItems(items = state.productItems) {
@@ -1786,11 +1868,11 @@
 
       const parts = raw.split(/\s*,\s*|\s*\/\s*/).map((item) => item.trim()).filter(Boolean);
       const parsedItems = parts.map((part) => {
-        const matched = part.match(/^(.*?)(\d+)\s*장$/);
+        const matched = part.match(/^(.*?)(\d+(?:\.\d+)?)\s*장$/);
         if (!matched) return null;
         const catalog = findMatCatalogItem(matched[1]);
         if (!catalog) return null;
-        const quantity = Math.max(0, Number.parseInt(matched[2], 10) || 0);
+        const quantity = normalizeProductQuantity(matched[2], catalog.name);
         return {
           ...createProductItem(catalog.name, quantity),
           unitPrice: catalog.unitPrice
@@ -1800,7 +1882,7 @@
       if (parsedItems.length) {
         const total = Number.parseInt(normalizeMoneyValue(totalPrice), 10) || 0;
         if (parsedItems.length === 1 && total > 0 && parsedItems[0].quantity > 0) {
-          parsedItems[0].unitPrice = Math.floor(total / parsedItems[0].quantity);
+          parsedItems[0].unitPrice = Math.round(total / parsedItems[0].quantity);
         }
         return parsedItems;
       }
@@ -1813,9 +1895,13 @@
       if (!matchedCatalog) return [];
 
       const total = Number.parseInt(normalizeMoneyValue(totalPrice), 10) || 0;
-      if (total > 0 && matchedCatalog.unitPrice > 0 && total % matchedCatalog.unitPrice === 0) {
+      const inferredQuantity = matchedCatalog.unitPrice > 0 ? total / matchedCatalog.unitPrice : 0;
+      const isValidQuantity = supportsHalfQuantityForType(matchedCatalog.name)
+        ? Number.isInteger(inferredQuantity * 2)
+        : Number.isInteger(inferredQuantity);
+      if (total > 0 && matchedCatalog.unitPrice > 0 && isValidQuantity) {
         return [{
-          ...createProductItem(matchedCatalog.name, total / matchedCatalog.unitPrice),
+          ...createProductItem(matchedCatalog.name, inferredQuantity),
           unitPrice: matchedCatalog.unitPrice
         }];
       }
@@ -1845,9 +1931,10 @@
         const baseType = getBaseMatType(item.type);
         const refurbChecked = isRefurbMatType(item.type);
         const refurbSupported = supportsRefurbForType(baseType);
+        const halfQuantitySupported = supportsHalfQuantityForType(item.type || baseType);
         const catalogUnitPrice = getMatUnitPrice(item.type);
         const unitPrice = getAppliedProductItemUnitPrice(item);
-        const subtotal = unitPrice * item.quantity;
+        const subtotal = calculateProductSubtotal(item);
         const options = ['<option value="">매트 종류 선택</option>']
           .concat(selectableTypes.map((catalogName) => {
             const selected = catalogName === baseType ? ' selected' : '';
@@ -1871,7 +1958,8 @@
             </div>
             <div class="pricing-field">
               <label>수량(장)</label>
-              <input type="number" min="0" step="1" value="${item.quantity || ''}" data-product-item-qty placeholder="0" />
+              <input type="number" min="0" step="${halfQuantitySupported ? '0.5' : '1'}" value="${escapeHtml(formatQuantityText(item.quantity))}" data-product-item-qty placeholder="0" />
+              <div class="pricing-field-hint">${baseType ? (halfQuantitySupported ? '1200 사이즈는 0.5장까지 입력할 수 있습니다.' : '600 사이즈는 1장 단위로 계산됩니다.') : '매트 종류를 선택한 뒤 수량을 입력해 주세요.'}</div>
             </div>
             <div class="pricing-field">
               <label>장당 금액</label>
@@ -1891,17 +1979,26 @@
     function syncProductPricingFields() {
       const validItems = getValidProductItems();
       const productSummary = validItems.length ? buildProductSummary(validItems) : state.legacyProductSummary;
-      const totalPrice = validItems.length ? String(calculateProductTotal(validItems)) : String(state.legacyTotalPrice || '');
+      const baseTotal = validItems.length
+        ? calculateProductTotal(validItems)
+        : (Number.parseInt(state.legacyBaseTotal || '', 10) || Number.parseInt(state.legacyTotalPrice || '', 10) || 0);
+      const discountAmount = getDiscountAmountValue();
+      const appliedDiscount = baseTotal > 0 ? Math.min(discountAmount, baseTotal) : 0;
+      const totalPrice = baseTotal > 0 ? String(Math.max(baseTotal - appliedDiscount, 0)) : '';
 
       const productInput = $('#ovProduct');
       const productItemsInput = $('#productItemsInput');
       const totalPriceInput = $('#totalPriceInput');
       const totalText = $('#productCalcTotalText');
+      const baseTotalText = $('#productCalcBaseTotalText');
+      const discountText = $('#productCalcDiscountText');
       const summaryText = $('#productCalcSummaryText');
 
       if (productInput) productInput.value = productSummary;
       if (productItemsInput) productItemsInput.value = validItems.length ? serializeProductItems(validItems) : '';
       if (totalPriceInput) totalPriceInput.value = formatMoneyInputValue(totalPrice);
+      if (baseTotalText) baseTotalText.textContent = formatMoneyText(baseTotal) || '0원';
+      if (discountText) discountText.textContent = formatMoneyText(appliedDiscount) || '0원';
       if (totalText) totalText.textContent = formatMoneyText(totalPrice) || '0원';
       if (summaryText) {
         summaryText.textContent = productSummary || '매트 종류, 수량, 장당 금액을 입력하면 품명과 결제금액이 자동 계산됩니다.';
@@ -1914,6 +2011,7 @@
       state.productItems = normalizeProductItems(items);
       state.legacyProductSummary = String(options.legacyProductSummary || '').trim();
       state.legacyTotalPrice = normalizeMoneyValue(options.legacyTotalPrice);
+      state.legacyBaseTotal = normalizeMoneyValue(options.legacyBaseTotal || '');
       if (!state.productItems.length) state.productItems = [createProductItem()];
       renderProductItemRows();
       syncProductPricingFields();
@@ -2061,6 +2159,7 @@
       'docDay',
       'installRound',
       'discountTypes',
+      'discountAmount',
       'discountEtc',
       'installNote',
       'customerSignName',
@@ -2633,6 +2732,7 @@
         $('#totalPriceInput')?.value,
         document.querySelector('select[name="color"]')?.value,
         document.querySelector('textarea[name="installNote"]')?.value,
+        $('#discountAmountInput')?.value,
         $('#discountEtcInput')?.value,
         $('#signatureImage')?.value
       ];
@@ -2677,6 +2777,8 @@
       }
 
       $$('input[name="discountType"]').forEach((el) => { el.checked = false; });
+      const discountAmountInput = $('#discountAmountInput');
+      if (discountAmountInput) discountAmountInput.value = '';
       syncDiscountEtcVisibility();
       setProductItems([createProductItem()]);
       renderInstallerProfile();
@@ -2714,7 +2816,8 @@
       $('#ovPhone').value = String(target.phone || '').trim();
       setProductItems(getProductItemsFromContract(target), {
         legacyProductSummary: String(target.product || '').trim(),
-        legacyTotalPrice: target.totalPrice
+        legacyTotalPrice: target.totalPrice,
+        legacyBaseTotal: (Number.parseInt(normalizeMoneyValue(target.totalPrice), 10) || 0) + (Number.parseInt(normalizeMoneyValue(target.discountAmount), 10) || 0)
       });
       $('#paymentMethodInput').value = String(target.paymentMethod || '').trim();
 
@@ -2748,8 +2851,10 @@
       $$('input[name="discountType"]').forEach((el) => {
         el.checked = discountSet.has(el.value);
       });
+      if ($('#discountAmountInput')) $('#discountAmountInput').value = formatMoneyInputValue(target.discountAmount);
       syncDiscountEtcVisibility();
       if ($('#discountEtcInput')) $('#discountEtcInput').value = String(target.discountEtc || '').trim();
+      syncProductPricingFields();
 
       const installNoteInput = document.querySelector('textarea[name="installNote"]');
       if (installNoteInput) installNoteInput.value = String(target.installNote || '').trim();
@@ -2820,6 +2925,7 @@
         addBtn.addEventListener('click', () => {
           state.legacyProductSummary = '';
           state.legacyTotalPrice = '';
+          state.legacyBaseTotal = '';
           state.productItems.push(createProductItem());
           renderProductItemRows();
           syncProductPricingFields();
@@ -2837,10 +2943,12 @@
         if (event.target.matches('[data-product-item-type]')) {
           state.legacyProductSummary = '';
           state.legacyTotalPrice = '';
+          state.legacyBaseTotal = '';
           const wantsRefurb = Boolean(row.querySelector('[data-product-item-refurb]')?.checked);
           const baseType = String(event.target.value || '').trim();
           const resolvedType = resolveCatalogType(baseType, wantsRefurb);
           item.type = resolvedType || '';
+          item.quantity = normalizeProductQuantity(item.quantity, item.type);
           item.unitPrice = getMatUnitPrice(item.type);
           renderProductItemRows();
           syncProductPricingFields();
@@ -2850,8 +2958,10 @@
         if (event.target.matches('[data-product-item-refurb]')) {
           state.legacyProductSummary = '';
           state.legacyTotalPrice = '';
+          state.legacyBaseTotal = '';
           const baseType = getBaseMatType(item.type || row.querySelector('[data-product-item-type]')?.value || '');
           item.type = resolveCatalogType(baseType, event.target.checked);
+          item.quantity = normalizeProductQuantity(item.quantity, item.type);
           item.unitPrice = getMatUnitPrice(item.type);
           renderProductItemRows();
           syncProductPricingFields();
@@ -2861,11 +2971,12 @@
         if (event.target.matches('[data-product-item-qty]')) {
           state.legacyProductSummary = '';
           state.legacyTotalPrice = '';
-          item.quantity = Math.max(0, Number.parseInt(event.target.value, 10) || 0);
+          state.legacyBaseTotal = '';
+          item.quantity = normalizeProductQuantity(event.target.value, item.type);
+          event.target.value = formatQuantityText(item.quantity);
           syncProductPricingFields();
 
-          const unitPrice = getAppliedProductItemUnitPrice(item);
-          const subtotal = unitPrice * item.quantity;
+          const subtotal = calculateProductSubtotal(item);
           const subtotalEl = row.querySelector('[data-product-item-subtotal]');
           if (subtotalEl) subtotalEl.textContent = formatMoneyText(subtotal) || '-';
         }
@@ -2873,11 +2984,12 @@
         if (event.target.matches('[data-product-item-unit-input]')) {
           state.legacyProductSummary = '';
           state.legacyTotalPrice = '';
+          state.legacyBaseTotal = '';
           item.unitPrice = normalizeUnitPriceValue(event.target.value);
           event.target.value = formatMoneyInputValue(item.unitPrice);
           syncProductPricingFields();
 
-          const subtotal = item.unitPrice * item.quantity;
+          const subtotal = calculateProductSubtotal(item);
           const subtotalEl = row.querySelector('[data-product-item-subtotal]');
           if (subtotalEl) subtotalEl.textContent = formatMoneyText(subtotal) || '-';
         }
@@ -2892,6 +3004,7 @@
 
         state.legacyProductSummary = '';
         state.legacyTotalPrice = '';
+        state.legacyBaseTotal = '';
         state.productItems = state.productItems.filter((item) => item.id !== row.dataset.productItemRow);
         if (!state.productItems.length) state.productItems = [createProductItem()];
         renderProductItemRows();
@@ -2917,6 +3030,13 @@
       $$('input[name="discountType"]').forEach((el) => {
         el.addEventListener('change', syncDiscountEtcVisibility);
       });
+      const discountAmountInput = $('#discountAmountInput');
+      if (discountAmountInput) {
+        discountAmountInput.addEventListener('input', () => {
+          discountAmountInput.value = formatMoneyInputValue(discountAmountInput.value);
+          syncProductPricingFields();
+        });
+      }
       syncDiscountEtcVisibility();
     }
 
@@ -3154,7 +3274,7 @@
         return;
       }
 
-      const headers = ['계약번호', '고객명', '연락처', '주소', '제품', '색상', '총금액', '결제방식', '결제요약', '시공일자', '시공차수', '할인유형', '기타할인', '시공특이사항', '시공자명', '등록일'];
+      const headers = ['계약번호', '고객명', '연락처', '주소', '제품', '색상', '총금액', '결제방식', '결제요약', '시공일자', '시공차수', '할인유형', '할인금액', '기타할인', '시공특이사항', '시공자명', '등록일'];
       const lines = [headers.map(csvEscape).join(',')];
 
       rows.forEach((item) => {
@@ -3171,6 +3291,7 @@
           item.installDate,
           item.installRound,
           item.discountTypes,
+          item.discountAmount,
           item.discountEtc,
           item.installNote,
           item.installerName,
@@ -3510,6 +3631,7 @@
       const customerName = String(fd.get('customerName') || '').trim();
       const phone = toDigits(fd.get('phone'));
       const discountTypes = fd.getAll('discountType').map((v) => String(v || '').trim()).filter(Boolean);
+      const discountAmount = normalizeMoneyValue(fd.get('discountAmount'));
       const discountEtc = $('#discountEtcInput')?.disabled ? '' : String(fd.get('discountEtc') || '').trim();
       const productSummary = String(fd.get('product') || '').trim();
       const productItems = String(fd.get('productItems') || '').trim();
@@ -3607,6 +3729,7 @@
         docDay: fd.get('docDay'),
         installRound: fd.get('installRound'),
         discountTypes: discountTypes.join(', '),
+        discountAmount,
         discountEtc,
         installNote: fd.get('installNote'),
         customerSignName: fd.get('customerSignName'),
