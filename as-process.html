@@ -266,10 +266,7 @@
     }
 
     .layout {
-      display: grid;
-      grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
-      gap: 14px;
-      align-items: start;
+      display: block;
     }
 
     label {
@@ -468,8 +465,42 @@
     }
 
     .preview-wrap {
-      position: sticky;
-      top: 14px;
+      position: static;
+      margin-top: 14px;
+    }
+
+    .paper-editor-tools {
+      display: grid;
+      gap: 12px;
+    }
+
+    .paper-editor-note {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      border: 1px dashed #cdd9e8;
+      border-radius: 18px;
+      background: #fbfdff;
+      padding: 14px;
+      margin-top: 12px;
+    }
+
+    .paper-editor-note strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 15px;
+      font-weight: 900;
+      color: #182230;
+    }
+
+    .customer-sign-box {
+      margin-top: 14px;
+    }
+
+    .paper-actions {
+      margin-top: 14px;
     }
 
     .paper {
@@ -738,10 +769,6 @@
     }
 
     @media (max-width: 1024px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
-
       .preview-wrap {
         position: static;
       }
@@ -783,7 +810,7 @@
 
       body { background: #fff; }
 
-      .topbar, .notice, .context-card, .editor-card, .process-guide {
+      .topbar, .notice, .context-card, .paper-editor-tools, .customer-sign-box, .paper-actions {
         display: none !important;
       }
 
@@ -978,115 +1005,37 @@
       </div>
     </section>
 
-    <section class="card process-guide">
-      <div class="card-head">
-        <div>
-          <h2 class="section-title">현장 처리 흐름</h2>
-          <div class="muted">고객 신청 내용을 확인한 뒤, 아래 빨간 확인서의 <strong>처리사항</strong> 칸에 바로 입력하고 고객 서명만 받으면 저장할 수 있습니다.</div>
-        </div>
-      </div>
-      <div class="step-strip">
-        <article class="step-card">
-          <div class="step-no">1</div>
-          <h3 class="step-title">신청 내용 확인</h3>
-          <p class="step-desc">고객 요청과 첨부 사진을 먼저 보고 방문 내용을 정리합니다.</p>
-        </article>
-        <article class="step-card active">
-          <div class="step-no">2</div>
-          <h3 class="step-title">처리사항 바로 작성</h3>
-          <p class="step-desc">확인서 안의 처리사항 칸을 눌러 계약서처럼 바로 입력합니다.</p>
-        </article>
-        <article class="step-card">
-          <div class="step-no">3</div>
-          <h3 class="step-title">고객 서명 받기</h3>
-          <p class="step-desc">시공자 서명은 자동으로 들어가고 고객 서명만 현장에서 받습니다.</p>
-        </article>
-        <article class="step-card">
-          <div class="step-no">4</div>
-          <h3 class="step-title">저장 후 인쇄</h3>
-          <p class="step-desc">저장하면 고객 확인용 AS 확인서로 바로 인쇄할 수 있습니다.</p>
-        </article>
-      </div>
-    </section>
-
     <section class="layout">
-      <section class="card editor-card">
-        <div class="card-head">
-          <div>
-            <h2 class="section-title">처리 진행</h2>
-            <div class="muted">상태와 날짜를 맞춘 뒤, 아래 확인서에서 처리사항을 직접 입력하고 고객 서명을 받으세요.</div>
-          </div>
-        </div>
-
-        <div class="form-grid">
-          <div>
-            <label for="asStatusInput">처리 상태</label>
-            <select id="asStatusInput">
-              <option value="접수중">접수중</option>
-              <option value="처리중">처리중</option>
-              <option value="처리완료">처리완료</option>
-            </select>
-          </div>
-          <div>
-            <label for="completedAtInput">처리일자</label>
-            <input id="completedAtInput" type="date" />
-          </div>
-          <div>
-            <label for="customerSignNameInput">고객 서명명</label>
-            <input id="customerSignNameInput" type="text" placeholder="고객명" />
-          </div>
-          <div>
-            <label for="installerSignNameInput">시공자 서명명</label>
-            <input id="installerSignNameInput" type="text" placeholder="시공자명" readonly />
-          </div>
-        </div>
-
-        <div class="editor-hint-box">
-          <div class="editor-hint-row">
-            <div>
-              <h3 class="editor-hint-title">처리사항은 확인서 안에서 바로 작성</h3>
-              <div class="muted">빨간 테두리 확인서의 <strong>처리사항</strong> 칸을 누르면 바로 입력됩니다.</div>
-            </div>
-            <button id="focusProcessNoteBtn" class="btn secondary focus-note-btn" type="button">처리사항 칸으로 이동</button>
-          </div>
-        </div>
-
-        <div class="signature-grid">
-          <section class="signature-box">
-            <div class="signature-head">
-              <h3 class="signature-title">고객 전자서명</h3>
-              <div class="signature-actions">
-                <button id="customerSignClearBtn" class="btn outline" type="button">서명 지우기</button>
-              </div>
-            </div>
-            <canvas id="customerSignatureCanvas" class="signature-canvas"></canvas>
-            <div class="signature-hint">고객 확인 후 바로 서명받을 수 있습니다.</div>
-          </section>
-
-          <section class="signature-box">
-            <div class="signature-head">
-              <h3 class="signature-title">시공자 전자서명</h3>
-            </div>
-            <div class="auto-sign-preview">
-              <img id="installerSignatureAutoImage" alt="시공자 기본 서명" />
-              <div id="installerSignatureAutoEmpty" class="auto-sign-empty">관리자 페이지에 저장된 시공자 기본 서명이 자동 반영됩니다.</div>
-            </div>
-            <div class="signature-hint">별도 입력 없이 저장된 시공자 서명이 확인서에 그대로 반영됩니다.</div>
-          </section>
-        </div>
-
-        <div class="actions" style="margin-top:14px;">
-          <button id="saveBtn" class="btn primary" type="button">처리 확인서 저장</button>
-          <button id="printBtn" class="btn secondary" type="button">인쇄</button>
-          <button id="refreshBtn" class="btn outline" type="button">새로고침</button>
-        </div>
-      </section>
-
       <section class="card preview-card">
         <div class="card-head">
           <div>
             <h2 class="section-title">고객 확인용 AS 확인서</h2>
-            <div class="muted">출력 시 빨간 테두리와 서명이 그대로 반영됩니다.</div>
+            <div class="muted">확인서 안에서 처리사항을 바로 적고, 아래에서 고객 서명만 받으면 저장·출력됩니다.</div>
+          </div>
+        </div>
+
+        <div class="paper-editor-tools">
+          <div class="form-grid">
+            <div>
+              <label for="asStatusInput">처리 상태</label>
+              <select id="asStatusInput">
+                <option value="접수중">접수중</option>
+                <option value="처리중">처리중</option>
+                <option value="처리완료">처리완료</option>
+              </select>
+            </div>
+            <div>
+              <label for="completedAtInput">처리일자</label>
+              <input id="completedAtInput" type="date" />
+            </div>
+          </div>
+
+          <div class="paper-editor-note">
+            <div>
+              <strong>처리사항은 확인서 안에서 바로 작성</strong>
+              <div class="muted">시공자 서명은 자동으로 반영되고, 아래에서는 고객 서명만 받으면 됩니다.</div>
+            </div>
+            <button id="focusProcessNoteBtn" class="btn secondary focus-note-btn" type="button">처리사항 칸으로 이동</button>
           </div>
         </div>
 
@@ -1168,6 +1117,23 @@
               </div>
             </section>
           </article>
+        </div>
+
+        <section class="signature-box customer-sign-box">
+          <div class="signature-head">
+            <h3 class="signature-title">고객 전자서명</h3>
+            <div class="signature-actions">
+              <button id="customerSignClearBtn" class="btn outline" type="button">서명 지우기</button>
+            </div>
+          </div>
+          <canvas id="customerSignatureCanvas" class="signature-canvas"></canvas>
+          <div class="signature-hint">시공자 서명은 확인서에 자동 반영되며, 여기서는 고객 서명만 받습니다.</div>
+        </section>
+
+        <div class="actions paper-actions">
+          <button id="saveBtn" class="btn primary" type="button">처리 확인서 저장</button>
+          <button id="printBtn" class="btn secondary" type="button">인쇄</button>
+          <button id="refreshBtn" class="btn outline" type="button">새로고침</button>
         </div>
       </section>
     </section>
@@ -1952,8 +1918,6 @@
       const contract = state.linkedContract;
       $('#asStatusInput').value = cleanText(request.status) || '접수중';
       $('#completedAtInput').value = cleanText(request.completedAt);
-      $('#customerSignNameInput').value = cleanText(request.customerSignName) || cleanText(request.customerName) || cleanText(contract?.customerName);
-      $('#installerSignNameInput').value = cleanText(request.installerSignName) || getCurrentInstallerName();
       setPaperProcessNoteValue(cleanText(request.techNote));
 
       initSignaturePads();
@@ -1971,8 +1935,8 @@
 
       const completedAt = cleanText($('#completedAtInput').value);
       const signDate = dateParts(completedAt || todayString());
-      const customerSignName = cleanText($('#customerSignNameInput').value) || cleanText(request.customerName) || cleanText(contract?.customerName);
-      const installerSignName = cleanText($('#installerSignNameInput').value) || getCurrentInstallerName();
+      const customerSignName = cleanText(request.customerSignName) || cleanText(request.customerName) || cleanText(contract?.customerName);
+      const installerSignName = cleanText(request.installerSignName) || getCurrentInstallerName();
       const customerSignImage = state.customerSignaturePad ? state.customerSignaturePad.getValue() : '';
       const installerSignImage = cleanText(state.installerSignatureValue) || cleanText(state.installerProfile?.signatureImage);
 
@@ -2025,9 +1989,9 @@
         status,
         techNote: getPaperProcessNoteValue(),
         completedAt,
-        customerSignName: cleanText($('#customerSignNameInput').value) || cleanText(request.customerName) || cleanText(contract?.customerName),
+        customerSignName: cleanText(request.customerSignName) || cleanText(request.customerName) || cleanText(contract?.customerName),
         signatureImage: state.customerSignaturePad ? state.customerSignaturePad.getValue() : '',
-        installerSignName: cleanText($('#installerSignNameInput').value) || getCurrentInstallerName(),
+        installerSignName: cleanText(request.installerSignName) || getCurrentInstallerName(),
         installerSignatureImage: cleanText(state.installerSignatureValue) || cleanText(state.installerProfile?.signatureImage),
         updatedAt: new Date().toISOString()
       });
@@ -2131,8 +2095,6 @@
       refreshPaperPreview();
     });
     $('#completedAtInput').addEventListener('input', refreshPaperPreview);
-    $('#customerSignNameInput').addEventListener('input', refreshPaperPreview);
-    $('#installerSignNameInput').addEventListener('input', refreshPaperPreview);
     $('#focusProcessNoteBtn').addEventListener('click', () => {
       focusPaperProcessNote();
     });
