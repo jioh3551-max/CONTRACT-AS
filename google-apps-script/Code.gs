@@ -1,87 +1,91 @@
 const PROP_SHEET_ID = 'AIKONGKONG_SPREADSHEET_ID';
+const PROP_DATA_VERSION = 'AIKONGKONG_DATA_VERSION';
 const DEFAULT_SPREADSHEET_ID = '1-4yzOffi19OwcxzdUgt8bOTIsroc9zqRibVDfZC3nPI';
+const READ_CACHE_TTL_SECONDS = 20;
+const MAX_CACHEABLE_JSON_LENGTH = 90000;
 
-const CONTRACT_SHEET = '?쒓났怨꾩빟??;
-const AS_SHEET = 'AS?좎껌?댁뿭';
-const ADMIN_SHEET = '愿由ъ옄';
+const CONTRACT_SHEET = '시공계약서';
+const AS_SHEET = 'AS신청내역';
+const ADMIN_SHEET = '관리자';
 
 const CONTRACT_SHEET_LEGACY_NAMES = ['contracts'];
 const AS_SHEET_LEGACY_NAMES = ['as_requests'];
 const ADMIN_SHEET_LEGACY_NAMES = ['admins'];
 
-const DEFAULT_ADMIN_NAME = '?뺤???;
+const DEFAULT_ADMIN_NAME = '정지오';
 const DEFAULT_ADMIN_PHONE = '01085259253';
 
 const CONTRACT_FIELD_DEFS = [
-  { key: 'id', label: '?앸퀎ID', aliases: ['ID'] },
-  { key: 'contractNo', label: '怨꾩빟踰덊샇', aliases: ['怨꾩빟 踰덊샇'] },
-  { key: 'customerName', label: '怨좉컼紐?, aliases: ['怨좉컼?대쫫', '?깅챸', '怨꾩빟?먮챸'] },
-  { key: 'phone', label: '?곕씫泥?, aliases: ['?대???, '怨좉컼?곕씫泥?, '?꾪솕踰덊샇'], numberFormat: '@' },
-  { key: 'address', label: '二쇱냼', aliases: ['?쒓났二쇱냼'] },
-  { key: 'product', label: '?쒗뭹', aliases: ['?쒗뭹紐?] },
-  { key: 'color', label: '?됱긽', aliases: ['?쒗뭹?됱긽'] },
-  { key: 'totalPrice', label: '珥앷툑??, aliases: ['寃곗젣湲덉븸', '湲덉븸'] },
-  { key: 'paymentMethod', label: '寃곗젣諛⑹떇', aliases: ['寃곗젣?섎떒', '寃곗젣 諛⑹떇'] },
-  { key: 'paymentSummary', label: '寃곗젣?붿빟', aliases: ['寃곗젣?댁슜', '寃곗젣 ?붿빟'] },
-  { key: 'installDate', label: '?쒓났?쇱옄', aliases: ['?쒓났??, '?쒓났 ?좎쭨'] },
-  { key: 'docYear', label: '臾몄꽌?곕룄', aliases: ['臾몄꽌 ?곕룄'] },
-  { key: 'docMonth', label: '臾몄꽌??, aliases: ['臾몄꽌 ??] },
-  { key: 'docDay', label: '臾몄꽌??, aliases: ['臾몄꽌 ??] },
-  { key: 'installRound', label: '?쒓났李⑥닔', aliases: ['?쒓났 李⑥닔'] },
-  { key: 'discountTypes', label: '?좎씤?좏삎', aliases: ['?좎씤 ?좏삎'] },
-  { key: 'discountEtc', label: '湲고??좎씤?곸꽭', aliases: ['湲고? ?좎씤 ?곸꽭'] },
-  { key: 'installNote', label: '?쒓났?뱀씠?ы빆', aliases: ['?쒓났 ?뱀씠?ы빆', '?뱀씠?ы빆'] },
-  { key: 'customerSignName', label: '怨좉컼?쒕챸紐?, aliases: ['怨좉컼 ?쒕챸紐?] },
-  { key: 'installerSignName', label: '?쒓났?먯꽌紐낅챸', aliases: ['?쒓났???쒕챸紐?] },
-  { key: 'signatureImage', label: '怨좉컼?쒕챸?대?吏', aliases: ['怨좉컼?쒕챸', '怨좉컼 ?쒕챸 ?대?吏'] },
-  { key: 'installerName', label: '?쒓났?먮챸', aliases: ['?쒓났湲곗궗紐?, '?대떦?쒓났?먮챸'] },
-  { key: 'installerSignatureImage', label: '?쒓났?먯꽌紐낆씠誘몄?', aliases: ['?쒓났?먯꽌紐?, '?쒓났???쒕챸 ?대?吏'] },
-  { key: 'createdAt', label: '?앹꽦?쇱떆', aliases: ['?깅줉?쇱떆', 'created_at'] },
-  { key: 'updatedAt', label: '?섏젙?쇱떆', aliases: ['蹂寃쎌씪??, 'updated_at'] },
-  { key: 'installerAddress', label: '?쒓났?먯＜??, aliases: ['?쒓났??二쇱냼'] },
-  { key: 'installerPhone', label: '?쒓났?먯뿰?쎌쿂', aliases: ['?쒓났???곕씫泥?, '?대떦?쒓났?먯뿰?쎌쿂'], numberFormat: '@' }
+  { key: 'id', label: '식별ID', aliases: ['ID'] },
+  { key: 'contractNo', label: '계약번호', aliases: ['계약 번호'] },
+  { key: 'customerName', label: '고객명', aliases: ['고객이름', '성명', '계약자명'] },
+  { key: 'phone', label: '연락처', aliases: ['휴대폰', '고객연락처', '전화번호'], numberFormat: '@' },
+  { key: 'address', label: '주소', aliases: ['시공주소'] },
+  { key: 'product', label: '제품', aliases: ['제품명'] },
+  { key: 'color', label: '색상', aliases: ['제품색상'] },
+  { key: 'totalPrice', label: '총금액', aliases: ['결제금액', '금액'] },
+  { key: 'paymentMethod', label: '결제방식', aliases: ['결제수단', '결제 방식'] },
+  { key: 'paymentSummary', label: '결제요약', aliases: ['결제내용', '결제 요약'] },
+  { key: 'installDate', label: '시공일자', aliases: ['시공일', '시공 날짜'] },
+  { key: 'docYear', label: '문서연도', aliases: ['문서 연도'] },
+  { key: 'docMonth', label: '문서월', aliases: ['문서 월'] },
+  { key: 'docDay', label: '문서일', aliases: ['문서 일'] },
+  { key: 'installRound', label: '시공차수', aliases: ['시공 차수'] },
+  { key: 'discountTypes', label: '할인유형', aliases: ['할인 유형'] },
+  { key: 'discountAmount', label: '할인금액', aliases: ['할인 금액'] },
+  { key: 'discountEtc', label: '기타할인상세', aliases: ['기타 할인 상세'] },
+  { key: 'installNote', label: '시공특이사항', aliases: ['시공 특이사항', '특이사항'] },
+  { key: 'customerSignName', label: '고객서명명', aliases: ['고객 서명명'] },
+  { key: 'installerSignName', label: '시공자서명명', aliases: ['시공자 서명명'] },
+  { key: 'signatureImage', label: '고객서명이미지', aliases: ['고객서명', '고객 서명 이미지'] },
+  { key: 'installerName', label: '시공자명', aliases: ['시공기사명', '담당시공자명'] },
+  { key: 'installerSignatureImage', label: '시공자서명이미지', aliases: ['시공자서명', '시공자 서명 이미지'] },
+  { key: 'createdAt', label: '생성일시', aliases: ['등록일시', 'created_at'] },
+  { key: 'updatedAt', label: '수정일시', aliases: ['변경일시', 'updated_at'] },
+  { key: 'installerAddress', label: '시공자주소', aliases: ['시공자 주소'] },
+  { key: 'installerPhone', label: '시공자연락처', aliases: ['시공자 연락처', '담당시공자연락처'], numberFormat: '@' }
 ];
 
 const AS_FIELD_DEFS = [
-  { key: 'id', label: '?앸퀎ID', aliases: ['ID'] },
-  { key: 'asNo', label: 'AS踰덊샇', aliases: ['A/S踰덊샇'] },
-  { key: 'contractId', label: '怨꾩빟?앸퀎ID', aliases: ['怨꾩빟ID'] },
-  { key: 'contractNo', label: '怨꾩빟踰덊샇', aliases: ['怨꾩빟 踰덊샇'] },
-  { key: 'customerName', label: '怨좉컼紐?, aliases: ['怨좉컼?대쫫', '?깅챸'] },
-  { key: 'phone', label: '?곕씫泥?, aliases: ['?대???, '怨좉컼?곕씫泥?], numberFormat: '@' },
-  { key: 'address', label: '二쇱냼', aliases: ['?쒓났二쇱냼'] },
-  { key: 'product', label: '?쒗뭹', aliases: ['?쒗뭹紐?] },
-  { key: 'installerName', label: '?쒓났?먮챸', aliases: ['?쒓났湲곗궗紐?, '?대떦?쒓났?먮챸'] },
-  { key: 'installerPhone', label: '?쒓났?먯뿰?쎌쿂', aliases: ['?쒓났???곕씫泥?], numberFormat: '@' },
-  { key: 'requestType', label: 'AS?좏삎', aliases: ['asType', 'A/S?좏삎', '?좎껌?좏삎'] },
-  { key: 'requestDetail', label: '?묒닔?댁슜', aliases: ['?좎껌?댁슜', '臾몄쓽?댁슜'] },
-  { key: 'requestImage1', label: '?붿껌?ъ쭊1', aliases: ['泥⑤??ъ쭊1', '?ъ쭊1'] },
-  { key: 'requestImage2', label: '?붿껌?ъ쭊2', aliases: ['泥⑤??ъ쭊2', '?ъ쭊2'] },
-  { key: 'requestImage3', label: '?붿껌?ъ쭊3', aliases: ['泥⑤??ъ쭊3', '?ъ쭊3'] },
-  { key: 'requestImage4', label: '?붿껌?ъ쭊4', aliases: ['泥⑤??ъ쭊4', '?ъ쭊4'] },
-  { key: 'contactTime', label: '?щ쭩?곕씫?쒓컙', aliases: ['?щ쭩 ?곕씫 ?쒓컙'] },
-  { key: 'status', label: '泥섎━?곹깭', aliases: ['吏꾪뻾?곹깭', '?곹깭'] },
-  { key: 'techNote', label: '泥섎━硫붾え', aliases: ['泥섎━ 硫붾え', '湲곗닠硫붾え'] },
-  { key: 'customerSignName', label: '怨좉컼?쒕챸紐?, aliases: ['怨좉컼 ?쒕챸紐?] },
-  { key: 'signatureImage', label: '怨좉컼?쒕챸?대?吏', aliases: ['怨좉컼?쒕챸', '怨좉컼 ?쒕챸 ?대?吏'] },
-  { key: 'installerSignName', label: '?쒓났?먯꽌紐낅챸', aliases: ['?쒓났???쒕챸紐?] },
-  { key: 'installerSignatureImage', label: '?쒓났?먯꽌紐낆씠誘몄?', aliases: ['?쒓났?먯꽌紐?, '?쒓났???쒕챸 ?대?吏'] },
-  { key: 'createdAt', label: '?묒닔?쇱떆', aliases: ['?앹꽦?쇱떆', '?깅줉?쇱떆'] },
-  { key: 'updatedAt', label: '?섏젙?쇱떆', aliases: ['蹂寃쎌씪??] },
-  { key: 'completedAt', label: '?꾨즺?쇱떆', aliases: ['泥섎━?꾨즺?쇱떆'] }
+  { key: 'id', label: '식별ID', aliases: ['ID'] },
+  { key: 'asNo', label: 'AS번호', aliases: ['A/S번호'] },
+  { key: 'contractId', label: '계약식별ID', aliases: ['계약ID'] },
+  { key: 'contractNo', label: '계약번호', aliases: ['계약 번호'] },
+  { key: 'customerName', label: '고객명', aliases: ['고객이름', '성명'] },
+  { key: 'phone', label: '연락처', aliases: ['휴대폰', '고객연락처'], numberFormat: '@' },
+  { key: 'address', label: '주소', aliases: ['시공주소'] },
+  { key: 'product', label: '제품', aliases: ['제품명'] },
+  { key: 'installerName', label: '시공자명', aliases: ['시공기사명', '담당시공자명'] },
+  { key: 'installerPhone', label: '시공자연락처', aliases: ['시공자 연락처'], numberFormat: '@' },
+  { key: 'requestType', label: 'AS유형', aliases: ['asType', 'A/S유형', '신청유형'] },
+  { key: 'requestDetail', label: '접수내용', aliases: ['신청내용', '문의내용'] },
+  { key: 'requestImage1', label: '요청사진1', aliases: ['첨부사진1', '사진1'] },
+  { key: 'requestImage2', label: '요청사진2', aliases: ['첨부사진2', '사진2'] },
+  { key: 'requestImage3', label: '요청사진3', aliases: ['첨부사진3', '사진3'] },
+  { key: 'requestImage4', label: '요청사진4', aliases: ['첨부사진4', '사진4'] },
+  { key: 'contactTime', label: '희망연락시간', aliases: ['희망 연락 시간'] },
+  { key: 'status', label: '처리상태', aliases: ['진행상태', '상태'] },
+  { key: 'techNote', label: '처리메모', aliases: ['처리 메모', '기술메모'] },
+  { key: 'customerSignName', label: '고객서명명', aliases: ['고객 서명명'] },
+  { key: 'signatureImage', label: '고객서명이미지', aliases: ['고객서명', '고객 서명 이미지'] },
+  { key: 'installerSignName', label: '시공자서명명', aliases: ['시공자 서명명'] },
+  { key: 'installerSignatureImage', label: '시공자서명이미지', aliases: ['시공자서명', '시공자 서명 이미지'] },
+  { key: 'createdAt', label: '접수일시', aliases: ['생성일시', '등록일시'] },
+  { key: 'updatedAt', label: '수정일시', aliases: ['변경일시'] },
+  { key: 'completedAt', label: '완료일시', aliases: ['처리완료일시'] }
 ];
 
 const ADMIN_FIELD_DEFS = [
-  { key: 'id', label: '?앸퀎ID', aliases: ['ID'] },
-  { key: 'name', label: '?대쫫', aliases: ['愿由ъ옄紐?, '?대떦?먮챸'] },
-  { key: 'phone', label: '?곕씫泥?, aliases: ['?대???, '?꾪솕踰덊샇'], numberFormat: '@' },
-  { key: 'address', label: '二쇱냼', aliases: ['?쒓났?먯＜??, '?쒓났??二쇱냼', '湲곕낯二쇱냼', '湲곕낯 二쇱냼'] },
-  { key: 'signatureImage', label: '?쒕챸?대?吏', aliases: ['?쒓났?먯꽌紐?, '?쒓났???쒕챸', '?쒓났?먯꽌紐낆씠誘몄?', '?쒓났???쒕챸 ?대?吏'] },
-  { key: 'savedAt', label: '湲곕낯?뺣낫??μ씪??, aliases: ['湲곕낯?뺣낫 ??μ씪??, 'saved_at'] },
-  { key: 'signatureSavedAt', label: '?쒕챸??μ씪??, aliases: ['?쒕챸 ??μ씪??, 'signature_saved_at'] },
-  { key: 'isActive', label: '?ъ슜?щ?', aliases: ['?쒖꽦?щ?', '?ъ슜 ?щ?'] },
-  { key: 'createdAt', label: '?앹꽦?쇱떆', aliases: ['?깅줉?쇱떆'] },
-  { key: 'updatedAt', label: '?섏젙?쇱떆', aliases: ['蹂寃쎌씪??] }
+  { key: 'id', label: '식별ID', aliases: ['ID'] },
+  { key: 'name', label: '이름', aliases: ['관리자명', '담당자명'] },
+  { key: 'phone', label: '연락처', aliases: ['휴대폰', '전화번호'], numberFormat: '@' },
+  { key: 'address', label: '주소', aliases: ['시공자주소', '시공자 주소', '기본주소', '기본 주소'] },
+  { key: 'signatureImage', label: '서명이미지', aliases: ['시공자서명', '시공자 서명', '시공자서명이미지', '시공자 서명 이미지'] },
+  { key: 'savedAt', label: '기본정보저장일시', aliases: ['기본정보 저장일시', 'saved_at'] },
+  { key: 'signatureSavedAt', label: '서명저장일시', aliases: ['서명 저장일시', 'signature_saved_at'] },
+  { key: 'isActive', label: '사용여부', aliases: ['활성여부', '사용 여부'] },
+  { key: 'createdAt', label: '생성일시', aliases: ['등록일시'] },
+  { key: 'updatedAt', label: '수정일시', aliases: ['변경일시'] }
 ];
 
 function doGet(e) {
@@ -110,7 +114,7 @@ function handleRequest_(e, body) {
       ensureDefaultAdmin_(ctx.adminSheet);
       return json_({
         ok: true,
-        message: '?쒗듃 ?ㅻ뜑? ???쒖꽌瑜??쒓? 湲곗??쇰줈 ?ш뎄?깊뻽?듬땲??',
+        message: '시트 헤더와 열 순서를 한글 기준으로 재구성했습니다.',
         sheets: normalized
       });
     }
@@ -120,53 +124,128 @@ function handleRequest_(e, body) {
       const repaired = repairAllPhoneColumns_(ctx);
       return json_({
         ok: true,
-        message: '?곕씫泥??댁쓣 ?띿뒪???뺤떇?쇰줈 留욎텛怨?湲곗〈 ?꾪솕踰덊샇瑜??ㅼ떆 ??ν뻽?듬땲??',
+        message: '연락처 열을 텍스트 형식으로 맞추고 기존 전화번호를 다시 저장했습니다.',
         result: repaired
       });
     }
 
-    const ctx = getContext_();
-
     if (action === 'load') {
-      return json_({
-        ok: true,
-        spreadsheetId: ctx.spreadsheet.getId(),
-        spreadsheetUrl: ctx.spreadsheet.getUrl(),
-        contracts: readSheetObjects_(ctx.contractSheet, CONTRACT_FIELD_DEFS, normalizeContractRecord_),
-        asRequests: readSheetObjects_(ctx.asSheet, AS_FIELD_DEFS, normalizeAsRequestRecord_),
-        admins: readSheetObjects_(ctx.adminSheet, ADMIN_FIELD_DEFS, normalizeAdminRecord_)
+      return withCachedJsonResponse_('load', { action: 'load' }, function () {
+        const ctx = getContext_({ skipSchemaSync: true, readOnly: true });
+        return {
+          ok: true,
+          spreadsheetId: ctx.spreadsheet.getId(),
+          spreadsheetUrl: ctx.spreadsheet.getUrl(),
+          contracts: readSheetObjects_(ctx.contractSheet, CONTRACT_FIELD_DEFS, normalizeContractRecord_),
+          asRequests: readSheetObjects_(ctx.asSheet, AS_FIELD_DEFS, normalizeAsRequestRecord_),
+          admins: readSheetObjects_(ctx.adminSheet, ADMIN_FIELD_DEFS, normalizeAdminRecord_)
+        };
       });
     }
 
     if (action === 'loadAdmins') {
-      return json_({
-        ok: true,
-        admins: readSheetObjects_(ctx.adminSheet, ADMIN_FIELD_DEFS, normalizeAdminRecord_),
-        fetchedAt: new Date().toISOString()
+      return withCachedJsonResponse_('loadAdmins', { action: 'loadAdmins' }, function () {
+        const ctx = getContext_({ skipSchemaSync: true, readOnly: true });
+        return {
+          ok: true,
+          admins: readSheetObjects_(ctx.adminSheet, ADMIN_FIELD_DEFS, normalizeAdminRecord_).map(toLoginAdminRecord_),
+          fetchedAt: new Date().toISOString()
+        };
       });
     }
 
     if (action === 'findCustomerLogin') {
-      var matchedCustomer = findCustomerContractMatch_(
-        readSheetObjects_(ctx.contractSheet, CONTRACT_FIELD_DEFS, normalizeContractRecord_),
-        (body && body.name) || (e && e.parameter && e.parameter.name) || '',
-        (body && body.phone) || (e && e.parameter && e.parameter.phone) || ''
-      );
-      return json_({
-        ok: true,
-        matched: !!matchedCustomer,
-        customer: matchedCustomer ? {
-          id: matchedCustomer.id,
-          contractNo: matchedCustomer.contractNo,
-          customerName: matchedCustomer.customerName,
-          phone: matchedCustomer.phone,
-          address: matchedCustomer.address,
-          product: matchedCustomer.product,
-          installDate: matchedCustomer.installDate
-        } : null,
-        fetchedAt: new Date().toISOString()
+      var customerLookup = extractCustomerLookupParams_(e, body);
+      return withCachedJsonResponse_('findCustomerLogin', customerLookup, function () {
+        const ctx = getContext_({ skipSchemaSync: true, readOnly: true });
+        var matchedCustomer = findCustomerContractMatch_(
+          readSheetObjects_(ctx.contractSheet, CONTRACT_FIELD_DEFS, normalizeContractRecord_),
+          customerLookup.name,
+          customerLookup.phone
+        );
+        return {
+          ok: true,
+          matched: !!matchedCustomer,
+          customer: matchedCustomer ? toLoginCustomerRecord_(matchedCustomer) : null,
+          fetchedAt: new Date().toISOString()
+        };
       });
     }
+
+    if (action === 'loadInstallerData') {
+      var installerLookup = extractInstallerLookupParams_(e, body);
+      return withCachedJsonResponse_('loadInstallerData', installerLookup, function () {
+        const ctx = getContext_({ skipSchemaSync: true, readOnly: true });
+        const contracts = readSheetObjects_(ctx.contractSheet, CONTRACT_FIELD_DEFS, normalizeContractRecord_);
+        const asRequests = readSheetObjects_(ctx.asSheet, AS_FIELD_DEFS, normalizeAsRequestRecord_);
+        const admins = readSheetObjects_(ctx.adminSheet, ADMIN_FIELD_DEFS, normalizeAdminRecord_);
+        const currentAdmin = findAdminRecordMatch_(admins, installerLookup);
+        const installerFilter = buildInstallerFilter_(currentAdmin || installerLookup);
+        return {
+          ok: true,
+          contracts: filterContractsByInstaller_(contracts, installerFilter),
+          asRequests: filterAsRequestsByInstaller_(asRequests, installerFilter).map(toInstallerAsListRecord_),
+          currentAdmin: currentAdmin || null,
+          fetchedAt: new Date().toISOString()
+        };
+      });
+    }
+
+    if (action === 'loadCustomerData') {
+      var customerDataLookup = extractCustomerLookupParams_(e, body);
+      customerDataLookup.customerId = trimText_((body && body.customerId) || (e && e.parameter && e.parameter.customerId));
+      customerDataLookup.contractNo = trimText_((body && body.contractNo) || (e && e.parameter && e.parameter.contractNo));
+      return withCachedJsonResponse_('loadCustomerData', customerDataLookup, function () {
+        const ctx = getContext_({ skipSchemaSync: true, readOnly: true });
+        const contracts = readSheetObjects_(ctx.contractSheet, CONTRACT_FIELD_DEFS, normalizeContractRecord_);
+        const asRequests = readSheetObjects_(ctx.asSheet, AS_FIELD_DEFS, normalizeAsRequestRecord_);
+        const customer = findCustomerContractForData_(contracts, customerDataLookup);
+        return {
+          ok: true,
+          customer: customer || null,
+          asRequests: customer ? filterAsRequestsForCustomer_(asRequests, customer, customerDataLookup) : [],
+          fetchedAt: new Date().toISOString()
+        };
+      });
+    }
+
+    if (action === 'getContract') {
+      var contractLookup = extractCustomerLookupParams_(e, body);
+      contractLookup.id = trimText_((body && body.id) || (e && e.parameter && e.parameter.id));
+      contractLookup.contractNo = trimText_((body && body.contractNo) || (e && e.parameter && e.parameter.contractNo));
+      return withCachedJsonResponse_('getContract', contractLookup, function () {
+        const ctx = getContext_({ skipSchemaSync: true, readOnly: true });
+        const contracts = readSheetObjects_(ctx.contractSheet, CONTRACT_FIELD_DEFS, normalizeContractRecord_);
+        const contract = findContractForLookup_(contracts, contractLookup);
+        return {
+          ok: true,
+          contract: contract || null,
+          fetchedAt: new Date().toISOString()
+        };
+      });
+    }
+
+    if (action === 'getAsRequestDetail') {
+      var asLookup = extractAsLookupParams_(e, body);
+      return withCachedJsonResponse_('getAsRequestDetail', asLookup, function () {
+        const ctx = getContext_({ skipSchemaSync: true, readOnly: true });
+        const asRequests = readSheetObjects_(ctx.asSheet, AS_FIELD_DEFS, normalizeAsRequestRecord_);
+        const contracts = readSheetObjects_(ctx.contractSheet, CONTRACT_FIELD_DEFS, normalizeContractRecord_);
+        const admins = readSheetObjects_(ctx.adminSheet, ADMIN_FIELD_DEFS, normalizeAdminRecord_);
+        const asRequest = findAsRequestForLookup_(asRequests, asLookup);
+        const linkedContract = asRequest ? findContractForAsRequest_(contracts, asRequest) : null;
+        const currentAdmin = findAdminRecordMatch_(admins, asLookup);
+        return {
+          ok: true,
+          asRequest: asRequest || null,
+          contract: linkedContract || null,
+          currentAdmin: currentAdmin || null,
+          fetchedAt: new Date().toISOString()
+        };
+      });
+    }
+
+    const ctx = getContext_();
 
     if (action === 'saveContract') {
       const now = new Date().toISOString();
@@ -175,6 +254,7 @@ function handleRequest_(e, body) {
       if (!contract.createdAt) contract.createdAt = now;
       contract.updatedAt = now;
       upsertById_(ctx.contractSheet, CONTRACT_FIELD_DEFS, contract);
+      bumpDataVersion_();
       return json_({ ok: true, contract: contract });
     }
 
@@ -183,11 +263,12 @@ function handleRequest_(e, body) {
       const req = normalizeAsRequestRecord_(Object.assign({}, body && body.asRequest ? body.asRequest : {}));
       if (!req.id) req.id = 'as_' + new Date().getTime();
       if (!req.createdAt) req.createdAt = now;
-      if (!req.status) req.status = '?묒닔以?;
+      if (!req.status) req.status = '접수중';
       req.updatedAt = now;
-      if (req.status !== '泥섎━?꾨즺') req.completedAt = '';
-      if (req.status === '泥섎━?꾨즺' && !req.completedAt) req.completedAt = now;
+      if (req.status !== '처리완료') req.completedAt = '';
+      if (req.status === '처리완료' && !req.completedAt) req.completedAt = now;
       upsertById_(ctx.asSheet, AS_FIELD_DEFS, req);
+      bumpDataVersion_();
       return json_({ ok: true, asRequest: req });
     }
 
@@ -199,10 +280,11 @@ function handleRequest_(e, body) {
       admin.updatedAt = now;
 
       if (!admin.name || !admin.phone) {
-        throw new Error('愿由ъ옄 ?대쫫/?곕씫泥섎뒗 ?꾩닔?낅땲??');
+        throw new Error('관리자 이름/연락처는 필수입니다.');
       }
 
       upsertById_(ctx.adminSheet, ADMIN_FIELD_DEFS, admin);
+      bumpDataVersion_();
       return json_({ ok: true, admin: admin });
     }
 
@@ -224,17 +306,22 @@ function getContext_(options) {
   const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
   const contractSheet = ensureSheet_(spreadsheet, CONTRACT_SHEET, CONTRACT_FIELD_DEFS, normalizeContractRecord_, {
     autoNormalize: !opts.skipSchemaSync,
-    legacyNames: CONTRACT_SHEET_LEGACY_NAMES
+    legacyNames: CONTRACT_SHEET_LEGACY_NAMES,
+    readOnly: !!opts.readOnly
   });
   const asSheet = ensureSheet_(spreadsheet, AS_SHEET, AS_FIELD_DEFS, normalizeAsRequestRecord_, {
     autoNormalize: !opts.skipSchemaSync,
-    legacyNames: AS_SHEET_LEGACY_NAMES
+    legacyNames: AS_SHEET_LEGACY_NAMES,
+    readOnly: !!opts.readOnly
   });
   const adminSheet = ensureSheet_(spreadsheet, ADMIN_SHEET, ADMIN_FIELD_DEFS, normalizeAdminRecord_, {
     autoNormalize: !opts.skipSchemaSync,
-    legacyNames: ADMIN_SHEET_LEGACY_NAMES
+    legacyNames: ADMIN_SHEET_LEGACY_NAMES,
+    readOnly: !!opts.readOnly
   });
-  ensureDefaultAdmin_(adminSheet);
+  if (!opts.readOnly) {
+    ensureDefaultAdmin_(adminSheet);
+  }
 
   return {
     spreadsheet: spreadsheet,
@@ -242,6 +329,69 @@ function getContext_(options) {
     asSheet: asSheet,
     adminSheet: adminSheet
   };
+}
+
+function getDataVersion_() {
+  const props = PropertiesService.getScriptProperties();
+  const current = trimText_(props.getProperty(PROP_DATA_VERSION));
+  if (current) return current;
+
+  const fallback = String(Date.now());
+  props.setProperty(PROP_DATA_VERSION, fallback);
+  return fallback;
+}
+
+function bumpDataVersion_() {
+  const next = String(Date.now());
+  PropertiesService.getScriptProperties().setProperty(PROP_DATA_VERSION, next);
+  return next;
+}
+
+function withCachedJsonResponse_(actionName, params, builder) {
+  const cache = CacheService.getScriptCache();
+  const cacheKey = buildCacheKey_(actionName, params);
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    return ContentService
+      .createTextOutput(cached)
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const payload = builder();
+  const serialized = JSON.stringify(payload);
+  if (serialized.length <= MAX_CACHEABLE_JSON_LENGTH) {
+    cache.put(cacheKey, serialized, READ_CACHE_TTL_SECONDS);
+  }
+  return ContentService
+    .createTextOutput(serialized)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function buildCacheKey_(actionName, params) {
+  const raw =
+    trimText_(actionName) +
+    '|' +
+    getDataVersion_() +
+    '|' +
+    JSON.stringify(stableCacheValue_(params));
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, raw);
+  return 'api:' + Utilities.base64EncodeWebSafe(digest).slice(0, 80);
+}
+
+function stableCacheValue_(value) {
+  if (Array.isArray(value)) {
+    return value.map(stableCacheValue_);
+  }
+  if (!value || typeof value !== 'object') {
+    return value == null ? '' : value;
+  }
+
+  return Object.keys(value)
+    .sort()
+    .reduce(function (acc, key) {
+      acc[key] = stableCacheValue_(value[key]);
+      return acc;
+    }, {});
 }
 
 function normalizeAllSheetHeaders_(ctx, options) {
@@ -263,9 +413,13 @@ function normalizeAllSheetHeaders_(ctx, options) {
 
 function ensureSheet_(spreadsheet, sheetName, fieldDefs, normalizer, options) {
   const opts = options || {};
-  let sheet = resolveSheetByName_(spreadsheet, sheetName, opts.legacyNames);
+  let sheet = resolveSheetByName_(spreadsheet, sheetName, opts.legacyNames, { renameLegacy: !opts.readOnly });
   if (!sheet) {
     sheet = spreadsheet.insertSheet(sheetName);
+  }
+
+  if (opts.readOnly) {
+    return sheet;
   }
 
   if (sheet.getLastRow() === 0) {
@@ -282,7 +436,8 @@ function ensureSheet_(spreadsheet, sheetName, fieldDefs, normalizer, options) {
   return sheet;
 }
 
-function resolveSheetByName_(spreadsheet, canonicalName, legacyNames) {
+function resolveSheetByName_(spreadsheet, canonicalName, legacyNames, options) {
+  const opts = options || {};
   const canonicalSheet = spreadsheet.getSheetByName(canonicalName);
   if (canonicalSheet) return canonicalSheet;
 
@@ -292,7 +447,9 @@ function resolveSheetByName_(spreadsheet, canonicalName, legacyNames) {
     if (!legacyName || legacyName === canonicalName) continue;
     const legacySheet = spreadsheet.getSheetByName(legacyName);
     if (!legacySheet) continue;
-    legacySheet.setName(canonicalName);
+    if (opts.renameLegacy !== false) {
+      legacySheet.setName(canonicalName);
+    }
     return legacySheet;
   }
 
@@ -336,7 +493,7 @@ function normalizeSheetSchema_(sheet, fieldDefs, normalizer, options) {
   }
 
   if (schema.recognizedHeaderCount === 0) {
-    throw new Error(sheet.getName() + ' ?쒗듃??1???ㅻ뜑瑜??몄떇?섏? 紐삵뻽?듬땲?? 鍮??쒗듃濡??ㅼ떆 留뚮뱾嫄곕굹 湲곗〈 ?쒖? ?ㅻ뜑瑜??ъ슜??二쇱꽭??');
+    throw new Error(sheet.getName() + ' 시트의 1행 헤더를 인식하지 못했습니다. 빈 시트로 다시 만들거나 기존 표준 헤더를 사용해 주세요.');
   }
 
   const grid = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
@@ -540,6 +697,7 @@ function normalizeContractRecord_(record) {
   next.docDay = trimText_(record.docDay);
   next.installRound = trimText_(record.installRound);
   next.discountTypes = normalizeListText_(record.discountTypes);
+  next.discountAmount = trimText_(record.discountAmount);
   next.discountEtc = trimText_(record.discountEtc);
   next.installNote = trimText_(record.installNote);
   next.customerSignName = trimText_(record.customerSignName);
@@ -575,7 +733,7 @@ function normalizeAsRequestRecord_(record) {
   next.requestDetail = trimText_(record.requestDetail);
   applyRequestImageFields_(next, normalizeRequestImages_(record));
   next.contactTime = trimText_(record.contactTime);
-  next.status = trimText_(record.status) || '?묒닔以?;
+  next.status = trimText_(record.status) || '접수중';
   next.techNote = trimText_(record.techNote);
   next.customerSignName = trimText_(record.customerSignName);
   next.signatureImage = trimText_(record.signatureImage);
@@ -600,6 +758,43 @@ function normalizeAdminRecord_(record) {
   next.createdAt = trimText_(record.createdAt);
   next.updatedAt = trimText_(record.updatedAt);
   return next;
+}
+
+function toInstallerAsListRecord_(record) {
+  const next = normalizeAsRequestRecord_(record);
+  delete next.requestImages;
+  delete next.requestImage1;
+  delete next.requestImage2;
+  delete next.requestImage3;
+  delete next.requestImage4;
+  if (next.signatureImage) next.signatureImage = 'SIGNED';
+  if (next.installerSignatureImage) next.installerSignatureImage = 'SIGNED';
+  return next;
+}
+
+function toLoginAdminRecord_(record) {
+  const admin = normalizeAdminRecord_(record);
+  return {
+    id: admin.id,
+    name: admin.name,
+    phone: admin.phone,
+    address: admin.address,
+    isActive: admin.isActive,
+    updatedAt: admin.updatedAt || admin.savedAt || admin.signatureSavedAt || admin.createdAt
+  };
+}
+
+function toLoginCustomerRecord_(record) {
+  const customer = normalizeContractRecord_(record);
+  return {
+    id: customer.id,
+    contractNo: customer.contractNo,
+    customerName: customer.customerName,
+    phone: customer.phone,
+    address: customer.address,
+    product: customer.product,
+    installDate: customer.installDate
+  };
 }
 
 function trimText_(value) {
@@ -680,6 +875,173 @@ function findCustomerContractMatch_(contracts, name, phone) {
   return null;
 }
 
+function extractInstallerLookupParams_(e, body) {
+  return {
+    adminId: trimText_((body && body.adminId) || (e && e.parameter && e.parameter.adminId)),
+    name: trimText_((body && body.name) || (e && e.parameter && e.parameter.name)),
+    phone: normalizePhoneText_((body && body.phone) || (e && e.parameter && e.parameter.phone))
+  };
+}
+
+function extractCustomerLookupParams_(e, body) {
+  return {
+    customerId: trimText_((body && body.customerId) || (e && e.parameter && e.parameter.customerId)),
+    contractNo: trimText_((body && body.contractNo) || (e && e.parameter && e.parameter.contractNo)),
+    name: trimText_((body && body.name) || (e && e.parameter && e.parameter.name)),
+    phone: normalizePhoneText_((body && body.phone) || (e && e.parameter && e.parameter.phone))
+  };
+}
+
+function extractAsLookupParams_(e, body) {
+  return {
+    id: trimText_((body && body.id) || (e && e.parameter && e.parameter.id)),
+    adminId: trimText_((body && body.adminId) || (e && e.parameter && e.parameter.adminId)),
+    name: trimText_((body && body.name) || (e && e.parameter && e.parameter.name)),
+    phone: normalizePhoneText_((body && body.phone) || (e && e.parameter && e.parameter.phone))
+  };
+}
+
+function buildInstallerFilter_(lookup) {
+  return {
+    adminId: trimText_(lookup && lookup.adminId),
+    name: trimText_(lookup && lookup.name),
+    phone: normalizePhoneText_(lookup && lookup.phone)
+  };
+}
+
+function findAdminRecordMatch_(admins, lookup) {
+  var targetId = trimText_(lookup && lookup.adminId);
+  var targetPhone = normalizePhoneText_(lookup && lookup.phone);
+  var targetName = normalizeNameForMatch_(lookup && lookup.name);
+
+  for (var i = 0; i < admins.length; i++) {
+    var item = normalizeAdminRecord_(admins[i] || {});
+    if (!item.id) continue;
+    if (targetId && item.id === targetId) return item;
+    if (targetPhone && normalizePhoneText_(item.phone) === targetPhone) return item;
+    if (targetName && normalizeNameForMatch_(item.name) === targetName) return item;
+  }
+
+  return null;
+}
+
+function matchesInstallerRecord_(item, lookup) {
+  var targetPhone = normalizePhoneText_(lookup && lookup.phone);
+  var targetName = normalizeNameForMatch_(lookup && lookup.name);
+  var itemPhone = normalizePhoneText_(item && item.installerPhone);
+  var itemName = normalizeNameForMatch_(item && item.installerName);
+
+  if (targetPhone && itemPhone) {
+    return itemPhone === targetPhone;
+  }
+  if (targetPhone && !itemPhone && targetName && itemName) {
+    return itemName === targetName;
+  }
+  if (targetName) {
+    return itemName === targetName;
+  }
+  return false;
+}
+
+function filterContractsByInstaller_(contracts, lookup) {
+  return (contracts || []).filter(function (item) {
+    return matchesInstallerRecord_(item, lookup);
+  });
+}
+
+function filterAsRequestsByInstaller_(asRequests, lookup) {
+  return (asRequests || []).filter(function (item) {
+    return matchesInstallerRecord_(item, lookup);
+  });
+}
+
+function findCustomerContractForData_(contracts, lookup) {
+  var targetId = trimText_(lookup && lookup.customerId);
+  var targetContractNo = trimText_(lookup && lookup.contractNo);
+
+  if (targetId) {
+    for (var i = 0; i < contracts.length; i++) {
+      var byId = normalizeContractRecord_(contracts[i] || {});
+      if (byId.id === targetId) return byId;
+    }
+  }
+
+  if (targetContractNo) {
+    for (var j = 0; j < contracts.length; j++) {
+      var byContractNo = normalizeContractRecord_(contracts[j] || {});
+      if (byContractNo.contractNo === targetContractNo) return byContractNo;
+    }
+  }
+
+  return findCustomerContractMatch_(contracts, lookup && lookup.name, lookup && lookup.phone);
+}
+
+function filterAsRequestsForCustomer_(asRequests, customer, lookup) {
+  var targetContractId = trimText_(customer && customer.id) || trimText_(lookup && lookup.customerId);
+  var targetContractNo = trimText_(customer && customer.contractNo) || trimText_(lookup && lookup.contractNo);
+  var targetPhone = normalizePhoneText_(customer && customer.phone) || normalizePhoneText_(lookup && lookup.phone);
+  var targetName = normalizeNameForMatch_(customer && customer.customerName) || normalizeNameForMatch_(lookup && lookup.name);
+
+  return (asRequests || []).filter(function (item) {
+    var current = normalizeAsRequestRecord_(item || {});
+    if (targetContractId && current.contractId === targetContractId) return true;
+    if (targetContractNo && current.contractNo === targetContractNo) return true;
+    if (targetPhone && targetName) {
+      return normalizePhoneText_(current.phone) === targetPhone
+        && normalizeNameForMatch_(current.customerName) === targetName;
+    }
+    if (targetPhone) return normalizePhoneText_(current.phone) === targetPhone;
+    return false;
+  });
+}
+
+function findContractForLookup_(contracts, lookup) {
+  var targetId = trimText_(lookup && lookup.id);
+  var targetContractNo = trimText_(lookup && lookup.contractNo);
+  if (targetId) {
+    for (var i = 0; i < contracts.length; i++) {
+      var byId = normalizeContractRecord_(contracts[i] || {});
+      if (byId.id === targetId) return byId;
+    }
+  }
+  if (targetContractNo) {
+    for (var j = 0; j < contracts.length; j++) {
+      var byContractNo = normalizeContractRecord_(contracts[j] || {});
+      if (byContractNo.contractNo === targetContractNo) return byContractNo;
+    }
+  }
+  return findCustomerContractForData_(contracts, lookup);
+}
+
+function findAsRequestForLookup_(asRequests, lookup) {
+  var targetId = trimText_(lookup && lookup.id);
+  if (!targetId) return null;
+  for (var i = 0; i < asRequests.length; i++) {
+    var item = normalizeAsRequestRecord_(asRequests[i] || {});
+    if (item.id === targetId) return item;
+  }
+  return null;
+}
+
+function findContractForAsRequest_(contracts, asRequest) {
+  if (!asRequest) return null;
+  var targetId = trimText_(asRequest.contractId);
+  var targetContractNo = trimText_(asRequest.contractNo);
+  var targetPhone = normalizePhoneText_(asRequest.phone);
+  var targetName = normalizeNameForMatch_(asRequest.customerName);
+
+  for (var i = 0; i < contracts.length; i++) {
+    var contract = normalizeContractRecord_(contracts[i] || {});
+    if (targetId && contract.id === targetId) return contract;
+    if (targetContractNo && contract.contractNo === targetContractNo) return contract;
+    if (targetPhone && targetName && normalizePhoneText_(contract.phone) === targetPhone && normalizeNameForMatch_(contract.customerName) === targetName) {
+      return contract;
+    }
+  }
+
+  return null;
+}
+
 function normalizeListText_(value) {
   if (Array.isArray(value)) {
     return value
@@ -707,7 +1069,7 @@ function normalizeCell_(value) {
 function normalizeActiveFlag_(value) {
   if (value === false) return 'N';
   const text = String(value == null ? '' : value).trim().toUpperCase();
-  if (text === 'N' || text === 'FALSE' || text === '0' || text === '鍮꾪솢??) return 'N';
+  if (text === 'N' || text === 'FALSE' || text === '0' || text === '비활성') return 'N';
   return 'Y';
 }
 
