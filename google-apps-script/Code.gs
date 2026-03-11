@@ -16,7 +16,7 @@ const CONTRACT_FIELD_DEFS = [
   { key: 'id', label: '식별ID', aliases: ['ID'] },
   { key: 'contractNo', label: '계약번호', aliases: ['계약 번호'] },
   { key: 'customerName', label: '고객명', aliases: ['고객이름', '성명', '계약자명'] },
-  { key: 'phone', label: '연락처', aliases: ['휴대폰', '고객연락처', '전화번호'] },
+  { key: 'phone', label: '연락처', aliases: ['휴대폰', '고객연락처', '전화번호'], numberFormat: '@' },
   { key: 'address', label: '주소', aliases: ['시공주소'] },
   { key: 'product', label: '제품', aliases: ['제품명'] },
   { key: 'color', label: '색상', aliases: ['제품색상'] },
@@ -39,7 +39,7 @@ const CONTRACT_FIELD_DEFS = [
   { key: 'createdAt', label: '생성일시', aliases: ['등록일시', 'created_at'] },
   { key: 'updatedAt', label: '수정일시', aliases: ['변경일시', 'updated_at'] },
   { key: 'installerAddress', label: '시공자주소', aliases: ['시공자 주소'] },
-  { key: 'installerPhone', label: '시공자연락처', aliases: ['시공자 연락처', '담당시공자연락처'] }
+  { key: 'installerPhone', label: '시공자연락처', aliases: ['시공자 연락처', '담당시공자연락처'], numberFormat: '@' }
 ];
 
 const AS_FIELD_DEFS = [
@@ -48,11 +48,11 @@ const AS_FIELD_DEFS = [
   { key: 'contractId', label: '계약식별ID', aliases: ['계약ID'] },
   { key: 'contractNo', label: '계약번호', aliases: ['계약 번호'] },
   { key: 'customerName', label: '고객명', aliases: ['고객이름', '성명'] },
-  { key: 'phone', label: '연락처', aliases: ['휴대폰', '고객연락처'] },
+  { key: 'phone', label: '연락처', aliases: ['휴대폰', '고객연락처'], numberFormat: '@' },
   { key: 'address', label: '주소', aliases: ['시공주소'] },
   { key: 'product', label: '제품', aliases: ['제품명'] },
   { key: 'installerName', label: '시공자명', aliases: ['시공기사명', '담당시공자명'] },
-  { key: 'installerPhone', label: '시공자연락처', aliases: ['시공자 연락처'] },
+  { key: 'installerPhone', label: '시공자연락처', aliases: ['시공자 연락처'], numberFormat: '@' },
   { key: 'requestType', label: 'AS유형', aliases: ['asType', 'A/S유형', '신청유형'] },
   { key: 'requestDetail', label: '접수내용', aliases: ['신청내용', '문의내용'] },
   { key: 'contactTime', label: '희망연락시간', aliases: ['희망 연락 시간'] },
@@ -66,7 +66,7 @@ const AS_FIELD_DEFS = [
 const ADMIN_FIELD_DEFS = [
   { key: 'id', label: '식별ID', aliases: ['ID'] },
   { key: 'name', label: '이름', aliases: ['관리자명', '담당자명'] },
-  { key: 'phone', label: '연락처', aliases: ['휴대폰', '전화번호'] },
+  { key: 'phone', label: '연락처', aliases: ['휴대폰', '전화번호'], numberFormat: '@' },
   { key: 'isActive', label: '사용여부', aliases: ['활성여부', '사용 여부'] },
   { key: 'createdAt', label: '생성일시', aliases: ['등록일시'] },
   { key: 'updatedAt', label: '수정일시', aliases: ['변경일시'] }
@@ -103,6 +103,16 @@ function handleRequest_(e, body) {
       });
     }
 
+    if (action === 'repairPhoneTextKo' || action === 'repairPhonesKo') {
+      const ctx = getContext_({ skipSchemaSync: true });
+      const repaired = repairAllPhoneColumns_(ctx);
+      return json_({
+        ok: true,
+        message: '연락처 열을 텍스트 형식으로 맞추고 기존 전화번호를 다시 저장했습니다.',
+        result: repaired
+      });
+    }
+
     const ctx = getContext_();
 
     if (action === 'load') {
@@ -113,6 +123,14 @@ function handleRequest_(e, body) {
         contracts: readSheetObjects_(ctx.contractSheet, CONTRACT_FIELD_DEFS, normalizeContractRecord_),
         asRequests: readSheetObjects_(ctx.asSheet, AS_FIELD_DEFS, normalizeAsRequestRecord_),
         admins: readSheetObjects_(ctx.adminSheet, ADMIN_FIELD_DEFS, normalizeAdminRecord_)
+      });
+    }
+
+    if (action === 'loadAdmins') {
+      return json_({
+        ok: true,
+        admins: readSheetObjects_(ctx.adminSheet, ADMIN_FIELD_DEFS, normalizeAdminRecord_),
+        fetchedAt: new Date().toISOString()
       });
     }
 
@@ -224,6 +242,8 @@ function ensureSheet_(spreadsheet, sheetName, fieldDefs, normalizer, options) {
   if (opts.autoNormalize !== false) {
     normalizeSheetSchema_(sheet, fieldDefs, normalizer, { backup: false });
   }
+
+  applyColumnFormats_(sheet, fieldDefs);
 
   return sheet;
 }
@@ -397,18 +417,55 @@ function writeSheetObjects_(sheet, fieldDefs, objects) {
   });
 
   ensureMinColumnCount_(sheet, headers.length);
+  ensureMinRowCount_(sheet, Math.max(rows.length + 1, 2));
   sheet.clearContents();
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  applyColumnFormats_(sheet, fieldDefs);
 
   if (rows.length) {
     sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
   }
+
+  trimExtraColumns_(sheet, headers.length);
 }
 
 function ensureMinColumnCount_(sheet, targetCount) {
   const maxColumns = sheet.getMaxColumns();
   if (maxColumns < targetCount) {
     sheet.insertColumnsAfter(maxColumns, targetCount - maxColumns);
+  }
+}
+
+function ensureMinRowCount_(sheet, targetCount) {
+  const maxRows = sheet.getMaxRows();
+  if (maxRows < targetCount) {
+    sheet.insertRowsAfter(maxRows, targetCount - maxRows);
+  }
+}
+
+function getFormattedFieldColumnIndexes_(fieldDefs) {
+  return fieldDefs.reduce(function (indexes, field, index) {
+    if (field && field.numberFormat) indexes.push(index + 1);
+    return indexes;
+  }, []);
+}
+
+function applyColumnFormats_(sheet, fieldDefs) {
+  const columnIndexes = getFormattedFieldColumnIndexes_(fieldDefs);
+  if (!columnIndexes.length) return;
+
+  ensureMinRowCount_(sheet, 2);
+  const rowCount = Math.max(sheet.getMaxRows() - 1, 1);
+  columnIndexes.forEach(function (columnIndex) {
+    const field = fieldDefs[columnIndex - 1];
+    sheet.getRange(2, columnIndex, rowCount, 1).setNumberFormat(field.numberFormat);
+  });
+}
+
+function trimExtraColumns_(sheet, targetCount) {
+  const maxColumns = sheet.getMaxColumns();
+  if (maxColumns > targetCount) {
+    sheet.deleteColumns(targetCount + 1, maxColumns - targetCount);
   }
 }
 
@@ -436,7 +493,7 @@ function normalizeContractRecord_(record) {
   next.id = trimText_(record.id);
   next.contractNo = trimText_(record.contractNo);
   next.customerName = trimText_(record.customerName);
-  next.phone = digitsOnly_(record.phone);
+  next.phone = normalizePhoneText_(record.phone);
   next.address = trimText_(record.address);
   next.product = trimText_(record.product);
   next.color = trimText_(record.color);
@@ -459,7 +516,7 @@ function normalizeContractRecord_(record) {
   next.createdAt = trimText_(record.createdAt);
   next.updatedAt = trimText_(record.updatedAt);
   next.installerAddress = trimText_(record.installerAddress);
-  next.installerPhone = digitsOnly_(record.installerPhone);
+  next.installerPhone = normalizePhoneText_(record.installerPhone);
 
   if (!next.paymentSummary) {
     next.paymentSummary = [next.paymentMethod, next.totalPrice].filter(Boolean).join(' / ');
@@ -475,11 +532,11 @@ function normalizeAsRequestRecord_(record) {
   next.contractId = trimText_(record.contractId);
   next.contractNo = trimText_(record.contractNo);
   next.customerName = trimText_(record.customerName);
-  next.phone = digitsOnly_(record.phone);
+  next.phone = normalizePhoneText_(record.phone);
   next.address = trimText_(record.address);
   next.product = trimText_(record.product);
   next.installerName = trimText_(record.installerName);
-  next.installerPhone = digitsOnly_(record.installerPhone);
+  next.installerPhone = normalizePhoneText_(record.installerPhone);
   next.requestType = trimText_(record.requestType || record.asType);
   next.requestDetail = trimText_(record.requestDetail);
   next.contactTime = trimText_(record.contactTime);
@@ -495,7 +552,7 @@ function normalizeAdminRecord_(record) {
   const next = {};
   next.id = trimText_(record.id);
   next.name = trimText_(record.name);
-  next.phone = normalizeAdminPhone_(record.phone);
+  next.phone = normalizePhoneText_(record.phone);
   next.isActive = normalizeActiveFlag_(record.isActive);
   next.createdAt = trimText_(record.createdAt);
   next.updatedAt = trimText_(record.updatedAt);
@@ -510,10 +567,10 @@ function digitsOnly_(value) {
   return String(value == null ? '' : value).replace(/[^0-9]/g, '');
 }
 
-function normalizeAdminPhone_(value) {
+function normalizePhoneText_(value) {
   var digits = digitsOnly_(value);
   if (!digits) return '';
-  if (digits.length === 10 && digits.charAt(0) !== '0') {
+  if ((digits.length === 9 || digits.length === 10) && digits.charAt(0) !== '0') {
     return '0' + digits;
   }
   return digits;
@@ -557,6 +614,38 @@ function normalizeHeaderName_(value) {
     .toLowerCase();
 }
 
+function repairAllPhoneColumns_(ctx) {
+  return {
+    contracts: repairSheetPhoneColumns_(ctx.contractSheet, CONTRACT_FIELD_DEFS, normalizeContractRecord_, ['phone', 'installerPhone']),
+    asRequests: repairSheetPhoneColumns_(ctx.asSheet, AS_FIELD_DEFS, normalizeAsRequestRecord_, ['phone', 'installerPhone']),
+    admins: repairSheetPhoneColumns_(ctx.adminSheet, ADMIN_FIELD_DEFS, normalizeAdminRecord_, ['phone'])
+  };
+}
+
+function repairSheetPhoneColumns_(sheet, fieldDefs, normalizer, phoneKeys) {
+  const before = readSheetObjects_(sheet, fieldDefs, null);
+  const after = before.map(function (item) {
+    return normalizer ? normalizer(item) : item;
+  });
+
+  let changedRows = 0;
+  after.forEach(function (item, index) {
+    const prev = before[index] || {};
+    const changed = phoneKeys.some(function (key) {
+      return trimText_(prev[key]) !== trimText_(item[key]);
+    });
+    if (changed) changedRows += 1;
+  });
+
+  writeSheetObjects_(sheet, fieldDefs, after);
+
+  return {
+    sheet: sheet.getName(),
+    rowCount: after.length,
+    changedRows: changedRows
+  };
+}
+
 function ensureDefaultAdmin_(adminSheet) {
   const admins = readSheetObjects_(adminSheet, ADMIN_FIELD_DEFS, normalizeAdminRecord_);
   const targetPhone = String(DEFAULT_ADMIN_PHONE).replace(/[^0-9]/g, '');
@@ -589,6 +678,7 @@ function upsertById_(sheet, fieldDefs, obj) {
   }
 
   ensureMinColumnCount_(sheet, headers.length);
+  applyColumnFormats_(sheet, fieldDefs);
 
   const rowValues = fieldDefs.map(function (field) {
     const value = obj[field.key];
@@ -598,6 +688,7 @@ function upsertById_(sheet, fieldDefs, obj) {
 
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) {
+    ensureMinRowCount_(sheet, 2);
     sheet.getRange(2, 1, 1, headers.length).setValues([rowValues]);
     return;
   }
@@ -614,7 +705,9 @@ function upsertById_(sheet, fieldDefs, obj) {
   }
 
   if (updateRow === -1) {
-    sheet.appendRow(rowValues);
+    const appendRow = lastRow + 1;
+    ensureMinRowCount_(sheet, appendRow);
+    sheet.getRange(appendRow, 1, 1, headers.length).setValues([rowValues]);
   } else {
     sheet.getRange(updateRow, 1, 1, headers.length).setValues([rowValues]);
   }
