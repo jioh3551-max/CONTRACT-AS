@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -249,6 +249,49 @@
       background: #fff;
     }
 
+    .photo-note {
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .photo-note.error { color: #b91c1c; }
+    .photo-note.success { color: #065f46; }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .photo-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      border: 1px solid #e5ebf3;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
+    }
+
+    .photo-thumb {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      background: #f8fafc;
+    }
+
+    .photo-caption {
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #516075;
+      text-align: center;
+    }
+
     @media (max-width: 820px) {
       .item-head { flex-direction: column; }
       .container { padding: 14px 10px 64px; }
@@ -263,7 +306,7 @@
       <div class="top-right">
         <span id="sourceChip" class="chip">데이터 소스: -</span>
         <a class="link" href="./contract.html">계약서 페이지</a>
-        <a class="link" href="./index.html">처음 화면</a>
+        <a class="link" href="./index.html?manual=1">처음 화면</a>
       </div>
     </div>
 
@@ -274,7 +317,6 @@
       <button data-page="customerAsFormPage">AS 접수</button>
       <button data-page="customerAsListPage">내 AS</button>
       <button data-page="customerMatCarePage">매트 관리방법</button>
-      <button id="reloadBtn">새로고침</button>
       <button id="logoutBtn">로그아웃</button>
     </div>
 
@@ -309,6 +351,13 @@
             <div class="field">
               <label>상세 내용</label>
               <textarea name="requestDetail" placeholder="문제가 발생한 위치와 증상을 자세히 입력해주세요." required></textarea>
+            </div>
+            <div class="field">
+              <label for="asPhotoInput">AS 사진</label>
+              <input id="asPhotoInput" type="file" accept="image/*" capture="environment" multiple />
+              <div class="photo-note">최대 4장까지 첨부할 수 있습니다.</div>
+              <div id="asPhotoNotice" class="photo-note">선택된 사진이 없습니다.</div>
+              <div id="asPhotoPreview" class="photo-grid" style="margin-top:10px;"></div>
             </div>
             <div class="actions">
               <button class="btn primary" type="submit">AS 접수하기</button>
@@ -353,6 +402,9 @@
     const SHEETS_API_URL_KEY = 'aikongkong_sheets_api_url';
     const DEFAULT_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec';
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
+    const MAX_AS_IMAGE_COUNT = 4;
+    const MAX_AS_IMAGE_DATA_URL_LENGTH = 45000;
+    const MAX_AS_IMAGE_EDGE = 960;
 
     const seedData = {
       contracts: [],
@@ -363,7 +415,8 @@
       currentCustomer: null,
       contracts: [],
       asRequests: [],
-      source: 'local'
+      source: 'local',
+      pendingAsImages: []
     };
 
     const $ = (s) => document.querySelector(s);
@@ -378,6 +431,169 @@
       return new Date().toISOString().split('T')[0];
     }
 
+    function normalizeRequestImages(item) {
+      const directList = Array.isArray(item?.requestImages)
+        ? item.requestImages
+        : [];
+      const fields = [
+        item?.requestImage1,
+        item?.requestImage2,
+        item?.requestImage3,
+        item?.requestImage4
+      ];
+
+      return [...directList, ...fields]
+        .map((value) => String(value || '').trim())
+        .filter(Boolean)
+        .filter((value, index, list) => list.indexOf(value) === index)
+        .slice(0, MAX_AS_IMAGE_COUNT);
+    }
+
+    function applyRequestImageFields(target, images) {
+      const list = Array.isArray(images) ? images.slice(0, MAX_AS_IMAGE_COUNT) : [];
+      target.requestImages = list;
+      for (let i = 0; i < MAX_AS_IMAGE_COUNT; i += 1) {
+        target[`requestImage${i + 1}`] = list[i] || '';
+      }
+      return target;
+    }
+
+    function normalizeAsRequestItem(item, idx = 0) {
+      const normalized = { ...(item || {}) };
+      if (!normalized.requestType && normalized.asType) normalized.requestType = normalized.asType;
+      if (!normalized.createdAt && normalized.requestDate) normalized.createdAt = normalized.requestDate;
+      if (!normalized.status) normalized.status = '접수중';
+      if (!normalized.id) normalized.id = String(normalized.asNo || '').trim() || `as_legacy_${idx + 1}`;
+      return applyRequestImageFields(normalized, normalizeRequestImages(normalized));
+    }
+
+    function setAsPhotoNotice(text, type = '') {
+      const el = $('#asPhotoNotice');
+      if (!el) return;
+      el.className = `photo-note ${type}`.trim();
+      el.textContent = text;
+    }
+
+    function renderPhotoGridHtml(images, labelPrefix = '사진') {
+      if (!Array.isArray(images) || !images.length) return '';
+      return images.map((src, index) => `
+        <a class="photo-card" href="${src}" target="_blank" rel="noopener">
+          <img class="photo-thumb" src="${src}" alt="${labelPrefix} ${index + 1}" />
+          <div class="photo-caption">${labelPrefix} ${index + 1}</div>
+        </a>
+      `).join('');
+    }
+
+    function renderAsPhotoPreview() {
+      const preview = $('#asPhotoPreview');
+      if (!preview) return;
+      const images = state.pendingAsImages.map((item) => item.dataUrl).filter(Boolean);
+      preview.innerHTML = renderPhotoGridHtml(images, '첨부 사진');
+      if (!images.length) {
+        setAsPhotoNotice('선택된 사진이 없습니다.');
+      } else {
+        setAsPhotoNotice(`${images.length}장 준비되었습니다. 접수 시 함께 저장됩니다.`, 'success');
+      }
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('사진 파일을 읽지 못했습니다.'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function loadImageElement(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('사진 미리보기를 만들지 못했습니다.'));
+        img.src = src;
+      });
+    }
+
+    async function compressAsImage(file) {
+      const source = await readFileAsDataUrl(file);
+      const image = await loadImageElement(source);
+      let width = image.naturalWidth || image.width || 1;
+      let height = image.naturalHeight || image.height || 1;
+      const scale = Math.min(1, MAX_AS_IMAGE_EDGE / Math.max(width, height));
+      width = Math.max(1, Math.round(width * scale));
+      height = Math.max(1, Math.round(height * scale));
+
+      const canvas = document.createElement('canvas');
+      let quality = 0.82;
+      let lastDataUrl = '';
+
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(image, 0, 0, width, height);
+
+        lastDataUrl = canvas.toDataURL('image/jpeg', quality);
+        if (lastDataUrl.length <= MAX_AS_IMAGE_DATA_URL_LENGTH) {
+          return lastDataUrl;
+        }
+
+        if (quality > 0.5) {
+          quality = Math.max(0.5, quality - 0.08);
+        } else {
+          width = Math.max(320, Math.round(width * 0.86));
+          height = Math.max(320, Math.round(height * 0.86));
+          quality = Math.max(0.4, quality - 0.04);
+        }
+      }
+
+      if (lastDataUrl && lastDataUrl.length <= MAX_AS_IMAGE_DATA_URL_LENGTH) {
+        return lastDataUrl;
+      }
+
+      throw new Error('사진 용량이 커서 저장할 수 없습니다. 조금 더 가까이 찍거나 해상도를 낮춰 다시 선택해주세요.');
+    }
+
+    async function handleAsPhotoChange(event) {
+      const input = event.currentTarget;
+      const files = Array.from(input.files || []);
+      if (!files.length) {
+        state.pendingAsImages = [];
+        renderAsPhotoPreview();
+        return;
+      }
+
+      if (files.length > MAX_AS_IMAGE_COUNT) {
+        setAsPhotoNotice(`사진은 최대 ${MAX_AS_IMAGE_COUNT}장까지 첨부할 수 있습니다. 앞의 ${MAX_AS_IMAGE_COUNT}장만 사용합니다.`, 'error');
+      } else {
+        setAsPhotoNotice('사진을 준비하고 있습니다.');
+      }
+
+      const selected = files.slice(0, MAX_AS_IMAGE_COUNT);
+
+      try {
+        const images = [];
+        for (let i = 0; i < selected.length; i += 1) {
+          const file = selected[i];
+          const dataUrl = await compressAsImage(file);
+          images.push({
+            name: String(file.name || `사진 ${i + 1}`),
+            dataUrl
+          });
+        }
+        state.pendingAsImages = images;
+        renderAsPhotoPreview();
+      } catch (err) {
+        state.pendingAsImages = [];
+        input.value = '';
+        renderAsPhotoPreview();
+        setAsPhotoNotice(err.message, 'error');
+      }
+    }
+
     function setDataSourceNotice(text, type = '') {
       const el = $('#dataSourceNotice');
       el.className = `notice ${type}`.trim();
@@ -389,6 +605,9 @@
       if (state.source === 'sheets') {
         el.textContent = '데이터 소스: Google Sheets';
         el.className = 'chip success';
+      } else if (state.source === 'checking') {
+        el.textContent = '데이터 소스: 확인 중';
+        el.className = 'chip';
       } else {
         el.textContent = '데이터 소스: Local Backup';
         el.className = 'chip';
@@ -437,20 +656,27 @@
     }
 
     function saveLocal() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ contracts: state.contracts, asRequests: state.asRequests }));
+      const contracts = Array.isArray(state.contracts) ? state.contracts : [];
+      const asRequests = Array.isArray(state.asRequests) ? state.asRequests : [];
+      if (!contracts.length && !asRequests.length) {
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ contracts, asRequests }));
     }
 
     function loadLocal() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
-        state.contracts = [...seedData.contracts];
-        state.asRequests = [...seedData.asRequests];
-        saveLocal();
+        state.contracts = [];
+        state.asRequests = [];
         return;
       }
       const parsed = JSON.parse(raw);
       state.contracts = parsed.contracts || [];
-      state.asRequests = parsed.asRequests || [];
+      state.asRequests = Array.isArray(parsed.asRequests)
+        ? parsed.asRequests.map((item, idx) => normalizeAsRequestItem(item, idx))
+        : [];
     }
 
     function hasStoredLocalData() {
@@ -548,7 +774,6 @@
         return merged;
       });
 
-      localMap.forEach((item) => mergedList.push(item));
       return mergedList;
     }
 
@@ -568,7 +793,9 @@
 
       const remoteContracts = Array.isArray(data.contracts) ? data.contracts : [];
       state.contracts = mergeContractFieldsFromLocal(remoteContracts);
-      state.asRequests = Array.isArray(data.asRequests) ? data.asRequests : [];
+      state.asRequests = Array.isArray(data.asRequests)
+        ? data.asRequests.map((item, idx) => normalizeAsRequestItem(item, idx))
+        : [];
       state.source = 'sheets';
       saveLocal();
     }
@@ -759,6 +986,14 @@
             ${getStatusBadge(item.status)}
           </div>
           <div class="line-note">접수 내용: ${item.requestDetail || '-'}</div>
+          ${normalizeRequestImages(item).length ? `
+            <div style="margin-top:10px;">
+              <div class="muted" style="margin-bottom:8px;">첨부 사진</div>
+              <div class="photo-grid">
+                ${renderPhotoGridHtml(normalizeRequestImages(item), 'AS 사진')}
+              </div>
+            </div>
+          ` : ''}
           <div class="muted" style="margin-top:10px;">희망 연락 시간: ${item.contactTime || '-'}</div>
           <div class="line-note" style="margin-top:10px;">처리 메모: ${item.techNote || '아직 등록되지 않았습니다.'}</div>
         </div>
@@ -803,6 +1038,7 @@
 
       const form = e.currentTarget;
       const fd = new FormData(form);
+      const requestImages = state.pendingAsImages.map((item) => item.dataUrl).filter(Boolean);
       const payload = {
         id: `as_${Date.now()}`,
         asNo: makeAsNo(),
@@ -823,17 +1059,18 @@
         completedAt: '',
         createdAt: new Date().toISOString()
       };
+      applyRequestImageFields(payload, requestImages);
 
       try {
         const data = await postRemote('saveAsRequest', { asRequest: payload });
-        const saved = data.asRequest || payload;
+        const saved = normalizeAsRequestItem(data.asRequest || payload);
         state.asRequests.push(saved);
         saveLocal();
         state.source = 'sheets';
         setSourceChip();
         showAsSubmitMessage('AS 접수가 완료되었습니다. 담당자가 확인 후 연락드립니다.', 'success');
       } catch (err) {
-        state.asRequests.push(payload);
+        state.asRequests.push(normalizeAsRequestItem(payload));
         saveLocal();
         state.source = 'local';
         setSourceChip();
@@ -841,27 +1078,21 @@
       }
 
       form.reset();
+      state.pendingAsImages = [];
+      renderAsPhotoPreview();
       renderAsList();
       goPage('customerAsListPage');
     });
+
+    $('#asPhotoInput').addEventListener('change', handleAsPhotoChange);
 
     $$('.nav button[data-page]').forEach((btn) => {
       btn.addEventListener('click', () => goPage(btn.dataset.page));
     });
 
-    $('#reloadBtn').addEventListener('click', async () => {
-      await loadData();
-      const entry = loadEntrySession();
-      if (entry) {
-        state.currentCustomer = findCurrentCustomer(entry);
-      }
-      renderAll();
-      setDataSourceNotice('데이터를 새로고침했습니다.', 'success');
-    });
-
     $('#logoutBtn').addEventListener('click', () => {
       sessionStorage.removeItem(ENTRY_SESSION_KEY);
-      location.href = './index.html';
+      location.href = './index.html?manual=1';
     });
 
     function enableDevAutoReload() {
@@ -891,16 +1122,9 @@
         localStorage.setItem(SHEETS_API_URL_KEY, DEFAULT_SHEETS_API_URL);
       }
 
-      if (hasStoredLocalData()) {
-        loadLocal();
-        state.source = 'local';
-        state.currentCustomer = findCurrentCustomer(entry);
-        renderAll();
-        setDataSourceNotice('Google Sheets 연동 상태를 확인 중입니다. 현재 로컬 데이터를 먼저 표시합니다.');
-        setSourceChip();
-      } else {
-        setDataSourceNotice('Google Sheets 계약 정보를 불러오는 중입니다.');
-      }
+      state.source = 'checking';
+      setDataSourceNotice('Google Sheets 계약 정보를 불러오는 중입니다.');
+      setSourceChip();
 
       await loadData();
 
@@ -912,10 +1136,10 @@
         return;
       }
 
+      renderAsPhotoPreview();
       renderAll();
       enableDevAutoReload();
     })();
   </script>
 </body>
 </html>
-
