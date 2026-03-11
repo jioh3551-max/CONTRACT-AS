@@ -493,7 +493,7 @@
       </div>
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <span id="sourceBadge" class="badge">데이터 확인 중</span>
-        <a id="backLink" class="link" href="./index.html">처음 화면</a>
+        <a id="backLink" class="link" href="./index.html?manual=1">처음 화면</a>
       </div>
     </div>
 
@@ -506,6 +506,7 @@
           <span id="metaCreatedAt">작성일 -</span>
         </div>
         <div class="actions">
+          <button id="backBtn" class="btn secondary" type="button">뒤로가기</button>
           <button id="printBtn" class="btn primary" type="button">인쇄</button>
           <button id="refreshBtn" class="btn secondary" type="button">새로고침</button>
         </div>
@@ -707,7 +708,13 @@
     }
 
     function saveLocal() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ contracts: state.contracts, asRequests: state.asRequests }));
+      const contracts = Array.isArray(state.contracts) ? state.contracts : [];
+      const asRequests = Array.isArray(state.asRequests) ? state.asRequests : [];
+      if (!contracts.length && !asRequests.length) {
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ contracts, asRequests }));
     }
 
     function loadLocal() {
@@ -812,7 +819,6 @@
         return merged;
       });
 
-      localMap.forEach((item) => mergedList.push(item));
       return mergedList;
     }
 
@@ -1041,6 +1047,21 @@
       }
     }
 
+    function goBackFromContract() {
+      const fallback = $('#backLink')?.getAttribute('href') || './index.html?manual=1';
+      const referrer = String(document.referrer || '').trim();
+      if (referrer) {
+        try {
+          const refUrl = new URL(referrer, location.href);
+          if (refUrl.origin === location.origin && window.history.length > 1) {
+            window.history.back();
+            return;
+          }
+        } catch (_) {}
+      }
+      location.href = fallback;
+    }
+
     async function refreshContract() {
       await loadData();
       const contract = findContract();
@@ -1052,6 +1073,7 @@
       setTopState(true, '계약 데이터가 정상 로드되었습니다. 양식 그대로 인쇄 가능합니다.');
     }
 
+    $('#backBtn').addEventListener('click', goBackFromContract);
     $('#printBtn').addEventListener('click', () => window.print());
     $('#refreshBtn').addEventListener('click', refreshContract);
 
