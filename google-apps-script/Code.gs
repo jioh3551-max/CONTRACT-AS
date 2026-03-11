@@ -134,6 +134,28 @@ function handleRequest_(e, body) {
       });
     }
 
+    if (action === 'findCustomerLogin') {
+      var matchedCustomer = findCustomerContractMatch_(
+        readSheetObjects_(ctx.contractSheet, CONTRACT_FIELD_DEFS, normalizeContractRecord_),
+        (body && body.name) || (e && e.parameter && e.parameter.name) || '',
+        (body && body.phone) || (e && e.parameter && e.parameter.phone) || ''
+      );
+      return json_({
+        ok: true,
+        matched: !!matchedCustomer,
+        customer: matchedCustomer ? {
+          id: matchedCustomer.id,
+          contractNo: matchedCustomer.contractNo,
+          customerName: matchedCustomer.customerName,
+          phone: matchedCustomer.phone,
+          address: matchedCustomer.address,
+          product: matchedCustomer.product,
+          installDate: matchedCustomer.installDate
+        } : null,
+        fetchedAt: new Date().toISOString()
+      });
+    }
+
     if (action === 'saveContract') {
       const now = new Date().toISOString();
       const contract = normalizeContractRecord_(Object.assign({}, body && body.contract ? body.contract : {}));
@@ -574,6 +596,26 @@ function normalizePhoneText_(value) {
     return '0' + digits;
   }
   return digits;
+}
+
+function normalizeNameForMatch_(value) {
+  return trimText_(value).replace(/\s+/g, '');
+}
+
+function findCustomerContractMatch_(contracts, name, phone) {
+  var targetName = normalizeNameForMatch_(name);
+  var targetPhone = normalizePhoneText_(phone);
+  if (!targetName || !targetPhone) return null;
+
+  for (var i = 0; i < contracts.length; i++) {
+    var item = normalizeContractRecord_(contracts[i] || {});
+    if (!item.id) continue;
+    if (normalizeNameForMatch_(item.customerName) !== targetName) continue;
+    if (normalizePhoneText_(item.phone) !== targetPhone) continue;
+    return item;
+  }
+
+  return null;
 }
 
 function normalizeListText_(value) {
