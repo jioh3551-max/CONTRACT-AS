@@ -1190,7 +1190,7 @@
           <div class="actions">
             <button class="btn outline" type="button" id="copyContractBtn">계약번호 복사</button>
             ${installerAction}
-            <a class="btn secondary" href="${authSession.withReturnTo(`./contract.html?id=${encodeURIComponent(c.id || '')}`, `./customer.html?page=${encodeURIComponent(state.currentPage || 'customerContractPage')}`)}" target="_blank" rel="noopener">계약서 페이지 열기</a>
+            <a class="btn secondary" href="${authSession.withReturnTo(`./contract.html?id=${encodeURIComponent(c.id || '')}`, `./customer.html?page=${encodeURIComponent(state.currentPage || 'customerContractPage')}`)}">계약서 페이지 열기</a>
           </div>
         </div>
       `;

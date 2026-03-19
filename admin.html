@@ -3586,7 +3586,7 @@
           <div class="item-line">주소: ${item.address || '-'}<br>제품: ${item.product || '-'} / ${item.color || '-'}<br>결제: ${formatMoneyText(item.totalPrice) || item.totalPrice || '-'}${item.paymentMethod ? ` (${item.paymentMethod})` : ''}</div>
           <div class="actions" style="margin-top:10px;">
             <button class="btn tiny secondary" type="button" data-edit-contract="${String(item.id || '').replace(/"/g, '&quot;')}">불러와 수정</button>
-            <a class="btn tiny outline" href="${authSession.withReturnTo(`./contract.html?id=${encodeURIComponent(String(item.id || ''))}`, `${location.pathname}${location.search}`)}" target="_blank" rel="noopener">계약서 보기</a>
+              <a class="btn tiny outline" href="${authSession.withReturnTo(`./contract.html?id=${encodeURIComponent(String(item.id || ''))}`, `${location.pathname}${location.search}`)}">계약서 보기</a>
           </div>
         </div>
       `).join('');

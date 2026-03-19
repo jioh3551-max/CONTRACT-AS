@@ -683,7 +683,7 @@
               <button class="btn tiny outline" type="button" data-copy="${(c.contractNo || '').replace(/"/g, '&quot;')}" data-copy-label="계약번호">계약번호 복사</button>
               <button class="btn tiny outline" type="button" data-copy="${(c.phone || '').replace(/"/g, '&quot;')}" data-copy-label="연락처">연락처 복사</button>
               <a class="btn tiny secondary" href="./admin.html?view=contract&edit=${encodeURIComponent(c.id)}">불러와 수정</a>
-              <a class="btn tiny secondary" href="${authSession.withReturnTo(`./contract.html?id=${encodeURIComponent(c.id)}`, `./contracts.html`)}" target="_blank" rel="noopener">계약서 보기</a>
+              <a class="btn tiny secondary" href="${authSession.withReturnTo(`./contract.html?id=${encodeURIComponent(c.id)}`, `./contracts.html`)}">계약서 보기</a>
             </div>
           </div>
         `;
