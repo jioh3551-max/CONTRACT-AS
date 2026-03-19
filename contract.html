@@ -703,6 +703,7 @@
     </section>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
   <script>
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
@@ -714,7 +715,16 @@
     const SHARE_SITE_URL = 'https://contract-as.pages.dev';
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
 
-    const state = { contracts: [], asRequests: [], source: 'local', currentContract: null, shareBusy: false };
+    const state = {
+      contracts: [],
+      asRequests: [],
+      source: 'local',
+      currentContract: null,
+      shareBusy: false,
+      shareAssetKey: '',
+      shareAssetFile: null,
+      shareAssetPromise: null
+    };
 
     const $ = (s) => document.querySelector(s);
     const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
@@ -1027,6 +1037,85 @@
       ].join('\n');
     }
 
+    function getShareAssetKey(contract) {
+      const id = String(contract?.id || contract?.contractNo || '').trim();
+      const updatedAt = String(contract?.updatedAt || contract?.createdAt || contract?.installDate || '').trim();
+      return [id, updatedAt].filter(Boolean).join(':');
+    }
+
+    function resetShareAsset() {
+      state.shareAssetKey = '';
+      state.shareAssetFile = null;
+      state.shareAssetPromise = null;
+    }
+
+    function makeContractImageFilename(contract) {
+      const contractNo = normalizeContractTextValue(contract?.contractNo) || 'contract';
+      return `${contractNo}-고객확인용계약서.png`;
+    }
+
+    async function renderContractImageBlob() {
+      if (!window.html2canvas) {
+        throw new Error('공유용 이미지 도구를 아직 불러오지 못했습니다.');
+      }
+
+      const paper = document.querySelector('.paper');
+      if (!paper) {
+        throw new Error('공유할 계약서 영역을 찾지 못했습니다.');
+      }
+
+      const canvas = await window.html2canvas(paper, {
+        backgroundColor: '#ffffff',
+        scale: Math.max(2, window.devicePixelRatio || 1),
+        useCORS: true,
+        logging: false,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        windowWidth: document.documentElement.scrollWidth,
+        windowHeight: document.documentElement.scrollHeight
+      });
+
+      return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('계약서 이미지를 만들지 못했습니다.'));
+        }, 'image/png');
+      });
+    }
+
+    async function createContractShareFile(contract) {
+      const blob = await renderContractImageBlob();
+      return new File([blob], makeContractImageFilename(contract), { type: 'image/png' });
+    }
+
+    function primeContractShareAsset(contract) {
+      const key = getShareAssetKey(contract);
+      if (!key) {
+        resetShareAsset();
+        return;
+      }
+
+      if (state.shareAssetKey === key && (state.shareAssetFile || state.shareAssetPromise)) return;
+      state.shareAssetKey = key;
+      state.shareAssetFile = null;
+
+      state.shareAssetPromise = new Promise((resolve) => {
+        window.requestAnimationFrame(() => {
+          window.setTimeout(async () => {
+            try {
+              const file = await createContractShareFile(contract);
+              if (state.shareAssetKey === key) state.shareAssetFile = file;
+            } catch (_) {
+              if (state.shareAssetKey === key) state.shareAssetFile = null;
+            } finally {
+              if (state.shareAssetKey === key) state.shareAssetPromise = null;
+              resolve();
+            }
+          }, 80);
+        });
+      });
+    }
+
     function setShareButtonBusy(isBusy) {
       state.shareBusy = Boolean(isBusy);
       const button = $('#shareBtn');
@@ -1048,6 +1137,36 @@
         text: '아래 링크에서 시공 계약서를 확인하실 수 있습니다.',
         url: getShareTargetUrl(contract)
       };
+    }
+
+    async function shareWithNativeSheet(payload, shareFile) {
+      if (!navigator.share) return false;
+
+      const candidates = [
+        shareFile ? {
+          files: [shareFile],
+          title: payload.title,
+          text: payload.text
+        } : null,
+        payload,
+        { title: payload.title, url: payload.url },
+        { text: `${payload.text}\n${payload.url}`.trim() },
+        { url: payload.url }
+      ];
+
+      for (const candidate of candidates) {
+        if (!candidate || !Object.values(candidate).some(Boolean)) continue;
+        if (navigator.canShare) {
+          try {
+            if (!navigator.canShare(candidate)) continue;
+          } catch (_) {}
+        }
+        await navigator.share(candidate);
+        return true;
+      }
+
+      await navigator.share(payload);
+      return true;
     }
 
     async function copyContractLinkWithFallback(url) {
@@ -1091,16 +1210,18 @@
         return;
       }
 
-      setShareButtonBusy(true);
-      setTopState(true, '공유 창을 준비 중입니다.');
+      state.shareBusy = true;
 
       try {
         if (navigator.share) {
-          await navigator.share(payload);
-          setTopState(true, '기기 기본 공유 창을 열었습니다.');
+          const shareFile = state.shareAssetKey === getShareAssetKey(contract) ? state.shareAssetFile : null;
+          await shareWithNativeSheet(payload, shareFile);
+          setTopState(true, shareFile ? '기기 기본 공유 창을 열었습니다. 이미지로 전달할 수 있습니다.' : '기기 기본 공유 창을 열었습니다.');
           return;
         }
 
+        setShareButtonBusy(true);
+        setTopState(true, '공유 창을 준비 중입니다.');
         const copied = await copyContractLinkWithFallback(payload.url);
         if (copied) {
           setTopState(true, '공유 기능을 지원하지 않는 환경입니다. 링크가 복사되었습니다.');
@@ -1114,10 +1235,11 @@
           return;
         }
 
+        setShareButtonBusy(true);
         try {
           const copied = await copyContractLinkWithFallback(payload.url);
           if (copied) {
-            setTopState(true, '공유에 실패해 링크를 대신 복사했습니다.');
+            setTopState(true, '공유 창을 열지 못해 링크를 대신 복사했습니다.');
             return;
           }
         } catch (_) {}
@@ -1210,6 +1332,7 @@
       setText('extraDiscountEtc', discountEtcText || '-');
       setHidden('extraInstallNoteRow', !installNoteText);
       setText('extraInstallNote', installNoteText || '-');
+      primeContractShareAsset(contract);
     }
 
     function findContract() {
@@ -1273,6 +1396,8 @@
       await loadData();
       const contract = findContract();
       if (!contract) {
+        resetShareAsset();
+        setShareButtonAvailability(null);
         setTopState(false, '표시할 계약 데이터가 없습니다. 관리자 페이지에서 계약을 먼저 저장해주세요.');
         return;
       }
