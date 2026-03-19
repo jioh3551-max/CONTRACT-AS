@@ -704,6 +704,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+  <script src="./assets/aikongkong-session.js"></script>
   <script>
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
@@ -728,6 +729,7 @@
 
     const $ = (s) => document.querySelector(s);
     const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
+    const authSession = window.IkongkongSession;
 
     function getSheetsApiUrl() {
       const fromLocal = String(localStorage.getItem(SHEETS_API_URL_KEY) || '').trim();
@@ -925,12 +927,13 @@
     }
 
     function loadEntrySession() {
-      try {
-        const raw = sessionStorage.getItem(ENTRY_SESSION_KEY);
-        return raw ? JSON.parse(raw) : null;
-      } catch (_) {
-        return null;
-      }
+      return authSession.loadAuthSession();
+    }
+
+    function fetchContractById(contractId) {
+      const targetId = String(contractId || '').trim();
+      if (!targetId) return null;
+      return state.contracts.find((item) => String(item?.id || '').trim() === targetId) || null;
     }
 
     function getQueryContractId() {
@@ -1338,7 +1341,7 @@
     function findContract() {
       const id = getQueryContractId();
       if (id) {
-        const byId = state.contracts.find((x) => String(x.id) === id);
+        const byId = fetchContractById(id);
         if (byId) return byId;
       }
 
@@ -1359,7 +1362,11 @@
     function setupLinks() {
       const entry = loadEntrySession();
       const back = $('#backLink');
-      if (entry && entry.role === 'admin') {
+      const returnTo = authSession.readReturnToUrl();
+      if (returnTo) {
+        back.href = returnTo;
+        back.textContent = '메인';
+      } else if (entry && entry.role === 'admin') {
         back.href = './admin.html';
         back.textContent = '메인';
       } else if (entry && entry.role === 'customer') {
@@ -1370,7 +1377,8 @@
 
     function logoutFromContract() {
       const entry = loadEntrySession();
-      sessionStorage.removeItem(ENTRY_SESSION_KEY);
+      if (!confirm('정말 로그아웃 하시겠습니까?')) return;
+      authSession.clearAuthSession();
       if (entry?.role === 'admin') {
         localStorage.removeItem('aikongkong_auto_admin_login_v1');
       }
@@ -1379,17 +1387,7 @@
 
     function goBackFromContract() {
       const fallback = $('#backLink')?.getAttribute('href') || './index.html?manual=1';
-      const referrer = String(document.referrer || '').trim();
-      if (referrer) {
-        try {
-          const refUrl = new URL(referrer, location.href);
-          if (refUrl.origin === location.origin && window.history.length > 1) {
-            window.history.back();
-            return;
-          }
-        } catch (_) {}
-      }
-      location.href = fallback;
+      authSession.safeNavigateBack(fallback);
     }
 
     async function refreshContract() {
@@ -1430,6 +1428,15 @@
     }
 
     (async function init() {
+      const restored = authSession.bootstrapSession({
+        allowedRoles: ['admin', 'customer'],
+        allowGuest: Boolean(getQueryContractId())
+      });
+      if (!restored.ok && !restored.session && !getQueryContractId()) {
+        setTopState(false, '로그인 정보를 확인할 수 없어 시작 화면으로 이동합니다.');
+        window.setTimeout(() => location.replace('./index.html?manual=1'), 120);
+        return;
+      }
       setupLinks();
       await refreshContract();
       enableDevAutoReload();

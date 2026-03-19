@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -286,7 +286,6 @@
         box-shadow: 0 26px 54px rgba(43, 67, 78, 0.24);
       }
     }
-
   </style>
 </head>
 <body>
@@ -336,6 +335,7 @@
     </section>
   </main>
 
+  <script src="./assets/aikongkong-session.js"></script>
   <script>
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
     const AUTO_ADMIN_LOGIN_KEY = 'aikongkong_auto_admin_login_v1';
@@ -357,6 +357,7 @@
     const $ = (s) => document.querySelector(s);
     const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
     let adminSyncPromise = null;
+    const authSession = window.IkongkongSession;
 
     function normalizeCustomerName(name) {
       return String(name || '').replace(/\s+/g, '').trim();
@@ -461,13 +462,25 @@
     }
 
     function startAdminSession(admin, name, phone) {
-      sessionStorage.setItem(ENTRY_SESSION_KEY, JSON.stringify({
+      return authSession.saveAuthSession({
         role: 'admin',
         adminId: String(admin?.id || ''),
         name: admin?.name || name,
         phone: normalizeAdminPhone(phone),
         loggedAt: new Date().toISOString()
-      }));
+      });
+    }
+
+    function startCustomerSession(customer, fallbackName, phone) {
+      return authSession.saveAuthSession({
+        role: 'customer',
+        customerId: String(customer?.id || ''),
+        contractNo: String(customer?.contractNo || ''),
+        name: customer?.customerName || fallbackName,
+        phone: toDigits(customer?.phone || phone),
+        loggedAt: new Date().toISOString(),
+        verifiedAt: new Date().toISOString()
+      });
     }
 
     function mergeAdminsWithBuiltin(admins) {
@@ -687,20 +700,12 @@
       }
 
       if (!matchedCustomer) {
-        sessionStorage.removeItem(ENTRY_SESSION_KEY);
+        authSession.clearAuthSession();
         showMsg('등록된 고객 계약이 없습니다. 관리자에게 계약 등록 여부를 확인해주세요.', 'error');
         return;
       }
 
-      sessionStorage.setItem(ENTRY_SESSION_KEY, JSON.stringify({
-        role: 'customer',
-        customerId: String(matchedCustomer.id || ''),
-        contractNo: String(matchedCustomer.contractNo || ''),
-        name: matchedCustomer.customerName || name,
-        phone: toDigits(matchedCustomer.phone || phone),
-        loggedAt: new Date().toISOString(),
-        verifiedAt: new Date().toISOString()
-      }));
+      startCustomerSession(matchedCustomer, name, phone);
       location.href = './customer.html';
     });
 
@@ -732,8 +737,24 @@
     syncRememberedLoginUi();
     refreshAdminsFromSheets(false).catch(() => {});
 
+    (function maybeResumeSavedSession() {
+      if (isManualEntryMode()) return;
+      const restored = authSession.loadAuthSession();
+      if (!restored?.role) return;
+
+      if (restored.role === 'admin') {
+        location.href = './admin.html';
+        return;
+      }
+
+      if (restored.role === 'customer') {
+        location.href = './customer.html';
+      }
+    })();
+
     (async function maybeAutoLoginAdmin() {
       if (isManualEntryMode()) return;
+      if (authSession.loadAuthSession()) return;
 
       const remembered = readAutoAdminLogin();
       if (!remembered) return;

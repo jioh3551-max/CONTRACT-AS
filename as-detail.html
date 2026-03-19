@@ -356,7 +356,7 @@
       <div class="top-links">
         <span id="sourceChip" class="chip">데이터 소스: -</span>
         <a id="backToAdminLink" class="top-tool primary" href="./admin.html">메인</a>
-        <a class="link" href="./admin.html?view=as">AS 목록</a>
+        <a id="asListLink" class="link" href="./admin.html?view=as">AS 목록</a>
         <button id="logoutBtn" class="top-tool logout" type="button">로그아웃</button>
       </div>
     </div>
@@ -458,11 +458,12 @@
 
       <div class="actions">
         <a id="processLinkBtn" class="btn primary" href="./as-process.html">처리하기</a>
-        <a class="btn outline" href="./admin.html?view=as">목록으로 돌아가기</a>
+        <a id="backToListLink" class="btn outline" href="./admin.html?view=as">목록으로 돌아가기</a>
       </div>
     </section>
   </div>
 
+  <script src="./assets/aikongkong-session.js"></script>
   <script>
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
@@ -486,6 +487,7 @@
 
     const $ = (selector) => document.querySelector(selector);
     const toDigits = (value) => String(value || '').replace(/[^0-9]/g, '');
+    const authSession = window.IkongkongSession;
 
     function todayString() {
       return new Date().toISOString().split('T')[0];
@@ -752,28 +754,26 @@
     }
 
     function loadEntrySession() {
-      try {
-        const raw = sessionStorage.getItem(ENTRY_SESSION_KEY);
-        return raw ? JSON.parse(raw) : null;
-      } catch (_) {
-        return null;
-      }
+      return authSession.loadAuthSession();
     }
 
     function guardAdminAccess() {
-      const entry = loadEntrySession();
-      if (!entry || entry.role !== 'admin') {
-        alert('관리자 정보로 로그인 후 접근해주세요.');
-        location.replace('./index.html');
-        return null;
-      }
-      return entry;
+      const restored = authSession.bootstrapSession({ allowedRoles: ['admin'] });
+      if (restored.ok && restored.session?.role === 'admin') return restored.session;
+      setTopNotice('관리자 로그인 정보를 확인할 수 없어 시작 화면으로 이동합니다.', 'error');
+      window.setTimeout(() => location.replace('./index.html?manual=1'), 120);
+      return null;
     }
 
     function logoutAdminSession() {
-      sessionStorage.removeItem(ENTRY_SESSION_KEY);
+      if (!confirm('정말 로그아웃 하시겠습니까?')) return;
+      authSession.clearAuthSession();
       localStorage.removeItem('aikongkong_auto_admin_login_v1');
       location.href = './index.html?manual=1';
+    }
+
+    function getReturnListUrl() {
+      return authSession.readReturnToUrl() || './admin.html?view=as';
     }
 
     function loadInstallerProfile(defaultProfile = {}) {
@@ -948,7 +948,7 @@
     function updateContractLink(contract) {
       const link = $('#contractLinkBtn');
       if (contract && contract.id) {
-        link.href = `./contract.html?id=${encodeURIComponent(String(contract.id || ''))}`;
+        link.href = authSession.withReturnTo(`./contract.html?id=${encodeURIComponent(String(contract.id || ''))}`, `${location.pathname}${location.search}`);
         link.textContent = '계약서 보기';
         link.classList.remove('disabled');
         return;
@@ -964,7 +964,7 @@
       if (!link) return;
 
       if (request && request.id) {
-        link.href = `./as-process.html?id=${encodeURIComponent(String(request.id || ''))}`;
+        link.href = authSession.withReturnTo(`./as-process.html?id=${encodeURIComponent(String(request.id || ''))}`, `${location.pathname}${location.search}`);
         link.textContent = request.signatureImage || request.installerSignatureImage || request.techNote ? '처리 확인서 열기' : '처리하기';
         link.classList.remove('disabled');
         return;
@@ -1054,6 +1054,8 @@
     (async function init() {
       const entry = guardAdminAccess();
       if (!entry) return;
+      $('#asListLink').href = getReturnListUrl();
+      $('#backToListLink').href = getReturnListUrl();
 
       state.currentAdmin = {
         name: String(entry.name || '').trim(),

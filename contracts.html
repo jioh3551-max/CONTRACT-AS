@@ -299,6 +299,7 @@
     </section>
   </div>
 
+  <script src="./assets/aikongkong-session.js"></script>
   <script>
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
@@ -310,6 +311,7 @@
     ];
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
     const RECENT_CONTRACT_LIMIT = 10;
+    const CONTRACT_LIST_PAGE_STATE_KEY = 'admin_contract_list_state_v2';
 
     const seedData = {
       contracts: [{
@@ -347,6 +349,7 @@
     const $ = (s) => document.querySelector(s);
     const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
     const normalizeText = (v) => String(v || '').trim().toLowerCase();
+    const authSession = window.IkongkongSession;
 
     function getContractSortTime(item) {
       const candidates = [item?.createdAt, item?.updatedAt, item?.installDate];
@@ -680,7 +683,7 @@
               <button class="btn tiny outline" type="button" data-copy="${(c.contractNo || '').replace(/"/g, '&quot;')}" data-copy-label="계약번호">계약번호 복사</button>
               <button class="btn tiny outline" type="button" data-copy="${(c.phone || '').replace(/"/g, '&quot;')}" data-copy-label="연락처">연락처 복사</button>
               <a class="btn tiny secondary" href="./admin.html?view=contract&edit=${encodeURIComponent(c.id)}">불러와 수정</a>
-              <a class="btn tiny secondary" href="./contract.html?id=${encodeURIComponent(c.id)}" target="_blank" rel="noopener">계약서 보기</a>
+              <a class="btn tiny secondary" href="${authSession.withReturnTo(`./contract.html?id=${encodeURIComponent(c.id)}`, `./contracts.html`)}" target="_blank" rel="noopener">계약서 보기</a>
             </div>
           </div>
         `;
@@ -733,12 +736,7 @@
     }
 
     function loadEntrySession() {
-      try {
-        const raw = sessionStorage.getItem(ENTRY_SESSION_KEY);
-        return raw ? JSON.parse(raw) : null;
-      } catch (_) {
-        return null;
-      }
+      return authSession.loadAuthSession();
     }
 
     function hasAdminSession(entry) {
@@ -749,19 +747,33 @@
     }
 
     function guardAdminAccess() {
-      const entry = loadEntrySession();
-      if (!hasAdminSession(entry)) {
-        alert('관리자 정보로 로그인 후 접근해주세요.');
-        location.replace('./index.html');
-        return null;
-      }
-      return entry;
+      const restored = authSession.bootstrapSession({ allowedRoles: ['admin'] });
+      if (restored.ok && hasAdminSession(restored.session)) return restored.session;
+      showStatus('관리자 로그인 정보를 확인할 수 없어 시작 화면으로 이동합니다.', 'error');
+      window.setTimeout(() => location.replace('./index.html?manual=1'), 120);
+      return null;
     }
 
     function logoutAdminSession() {
-      sessionStorage.removeItem(ENTRY_SESSION_KEY);
+      if (!confirm('정말 로그아웃 하시겠습니까?')) return;
+      authSession.clearAuthSession();
       localStorage.removeItem(AUTO_ADMIN_LOGIN_KEY);
       location.href = './index.html?manual=1';
+    }
+
+    function restorePageState() {
+      return authSession.restorePageState(CONTRACT_LIST_PAGE_STATE_KEY, {
+        filterKeyword: '',
+        scrollY: 0
+      });
+    }
+
+    function persistPageState(partial = {}) {
+      return authSession.savePageState(CONTRACT_LIST_PAGE_STATE_KEY, {
+        filterKeyword: state.filterKeyword,
+        scrollY: window.scrollY,
+        ...partial
+      });
     }
 
     function enableDevAutoReload() {
@@ -784,12 +796,14 @@
 
     $('#contractSearchInput').addEventListener('input', (e) => {
       state.filterKeyword = e.target.value || '';
+      persistPageState({ filterKeyword: state.filterKeyword, scrollY: 0 });
       renderContractList();
     });
 
     $('#refreshBtn').addEventListener('click', async () => {
       await loadData();
       renderContractList();
+      persistPageState();
       showStatus('데이터를 새로고침했습니다.', 'success');
     });
 
@@ -801,20 +815,30 @@
       copyText(btn.dataset.copy, btn.dataset.copyLabel || '텍스트');
     });
 
+    let pageScrollTimer = 0;
+    window.addEventListener('scroll', () => {
+      if (pageScrollTimer) window.clearTimeout(pageScrollTimer);
+      pageScrollTimer = window.setTimeout(() => persistPageState({ scrollY: window.scrollY }), 120);
+    }, { passive: true });
+
     (async function init() {
       const entry = guardAdminAccess();
       if (!entry) return;
+      const restoredPage = restorePageState();
 
       state.currentAdminId = String(entry.adminId || '').trim();
       state.currentAdminName = String(entry.name || '').trim();
       state.currentAdminPhone = toDigits(entry.phone);
+      state.filterKeyword = String(restoredPage.filterKeyword || '');
       $('#heroTitle').textContent = `${entry.name} 님 계약목록`;
+      $('#contractSearchInput').value = state.filterKeyword;
       if (!String(localStorage.getItem(SHEETS_API_URL_KEY) || '').trim()) {
         localStorage.setItem(SHEETS_API_URL_KEY, DEFAULT_SHEETS_API_URL);
       }
 
       await loadData();
       renderContractList();
+      authSession.restoreScroll(restoredPage.scrollY);
       enableDevAutoReload();
     })();
   </script>

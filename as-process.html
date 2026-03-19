@@ -978,7 +978,7 @@
         <span id="sourceChip" class="chip">데이터 소스: -</span>
         <a id="requestDetailLink" class="link" href="./as-detail.html">신청내용 보기</a>
         <a class="top-tool primary" href="./admin.html">메인</a>
-        <a class="link" href="./admin.html?view=as">AS 목록</a>
+        <a id="asListLink" class="link" href="./admin.html?view=as">AS 목록</a>
         <button id="logoutBtn" class="top-tool logout" type="button">로그아웃</button>
       </div>
     </div>
@@ -1008,6 +1008,11 @@
               <label for="completedAtInput">처리일자</label>
               <input id="completedAtInput" type="date" />
             </div>
+          </div>
+          <div class="full">
+            <label for="completionPhotoInput">처리 완료 사진 (최대 4개)</label>
+            <input id="completionPhotoInput" type="file" accept="image/*" multiple />
+            <div id="completionPhotoPreview" class="photo-grid" style="margin-top: 10px;"></div>
           </div>
         </div>
 
@@ -1111,6 +1116,7 @@
     </section>
   </div>
 
+  <script src="./assets/aikongkong-session.js"></script>
   <script>
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
@@ -1133,7 +1139,8 @@
       linkedContract: null,
       isSaving: false,
       customerSignaturePad: null,
-      installerSignatureValue: ''
+      installerSignatureValue: '',
+      completionPhotos: []
     };
 
     const CONTRACT_FALLBACK_KEYS = [
@@ -1146,6 +1153,7 @@
 
     const $ = (selector) => document.querySelector(selector);
     const toDigits = (value) => String(value || '').replace(/[^0-9]/g, '');
+    const authSession = window.IkongkongSession;
 
     function applyProcessHeaderImage() {
       if (!PROCESS_HEADER_IMAGE) return;
@@ -1397,28 +1405,26 @@
     }
 
     function loadEntrySession() {
-      try {
-        const raw = sessionStorage.getItem(ENTRY_SESSION_KEY);
-        return raw ? JSON.parse(raw) : null;
-      } catch (_) {
-        return null;
-      }
+      return authSession.loadAuthSession();
     }
 
     function guardAdminAccess() {
-      const entry = loadEntrySession();
-      if (!entry || entry.role !== 'admin') {
-        alert('관리자 정보로 로그인한 뒤 이용해주세요.');
-        location.replace('./index.html');
-        return null;
-      }
-      return entry;
+      const restored = authSession.bootstrapSession({ allowedRoles: ['admin'] });
+      if (restored.ok && restored.session?.role === 'admin') return restored.session;
+      setTopNotice('관리자 로그인 정보를 확인할 수 없어 시작 화면으로 이동합니다.', 'error');
+      window.setTimeout(() => location.replace('./index.html?manual=1'), 120);
+      return null;
     }
 
     function logoutAdminSession() {
-      sessionStorage.removeItem(ENTRY_SESSION_KEY);
+      if (!confirm('정말 로그아웃 하시겠습니까?')) return;
+      authSession.clearAuthSession();
       localStorage.removeItem('aikongkong_auto_admin_login_v1');
       location.href = './index.html?manual=1';
+    }
+
+    function getReturnListUrl() {
+      return authSession.readReturnToUrl() || './admin.html?view=as';
     }
 
     function normalizeInstallerProfileRecord(profile, defaultProfile = {}) {
@@ -1654,6 +1660,53 @@
       `).join('');
     }
 
+    function renderCompletionPhotoPreview() {
+      const el = $('#completionPhotoPreview');
+      if (!el) return;
+
+      const images = state.completionPhotos;
+      if (!Array.isArray(images) || !images.length) {
+        el.innerHTML = '';
+        return;
+      }
+
+      el.innerHTML = images.map((src, index) => `
+        <div class="photo-card">
+          <img class="photo-thumb" src="${src}" alt="완료 사진 ${index + 1}" />
+          <div class="photo-caption">완료 사진 ${index + 1}</div>
+        </div>
+      `).join('');
+    }
+
+    function handleCompletionPhotoChange(event) {
+      const files = event.target.files;
+      if (!files || files.length === 0) {
+        state.completionPhotos = [];
+        renderCompletionPhotoPreview();
+        return;
+      }
+
+      const readers = [];
+      const photos = [];
+      const fileList = Array.from(files).slice(0, 4);
+
+      for (const file of fileList) {
+        readers.push(new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        }));
+      }
+
+      Promise.all(readers).then(results => {
+        state.completionPhotos = results;
+        renderCompletionPhotoPreview();
+      }).catch(err => {
+        setTopNotice(`사진을 읽는 중 오류가 발생했습니다: ${err.message}`, 'error');
+      });
+    }
+
     function resolveProductText(request, contract) {
       return cleanText(request?.product) || cleanText(contract?.productItems) || cleanText(contract?.product) || '-';
     }
@@ -1661,10 +1714,10 @@
     function updateRequestDetailLink(request) {
       const link = $('#requestDetailLink');
       if (!request || !request.id) {
-        link.href = './admin.html?view=as';
+        link.href = getReturnListUrl();
         return;
       }
-      link.href = `./as-detail.html?id=${encodeURIComponent(String(request.id || ''))}`;
+      link.href = authSession.withReturnTo(`./as-detail.html?id=${encodeURIComponent(String(request.id || ''))}`, getReturnListUrl());
     }
 
     function updatePaperSignature(id, value) {
@@ -1931,6 +1984,11 @@
       state.customerSignaturePad.setValue(cleanText(request.signatureImage));
       state.installerSignatureValue = cleanText(request.installerSignatureImage) || cleanText(state.installerProfile?.signatureImage);
       renderInstallerSignaturePreview(state.installerSignatureValue);
+
+      $('#completionPhotoInput').value = '';
+      state.completionPhotos = [];
+      renderCompletionPhotoPreview();
+
       syncCompletedAtField();
       refreshPaperPreview();
     }
@@ -1998,6 +2056,7 @@
         completedAt,
         customerSignName: cleanText(request.customerSignName) || cleanText(request.customerName) || cleanText(contract?.customerName),
         signatureImage: state.customerSignaturePad ? state.customerSignaturePad.getValue() : '',
+        completionPhotos: state.completionPhotos || [],
         installerSignName: cleanText(request.installerSignName) || getCurrentInstallerName(),
         installerSignatureImage: cleanText(state.installerSignatureValue) || cleanText(state.installerProfile?.signatureImage),
         updatedAt: new Date().toISOString()
@@ -2102,6 +2161,7 @@
       refreshPaperPreview();
     });
     $('#completedAtInput').addEventListener('input', refreshPaperPreview);
+    $('#completionPhotoInput').addEventListener('change', handleCompletionPhotoChange);
     $('#saveBtn').addEventListener('click', saveProcess);
     $('#printBtn').addEventListener('click', () => {
       refreshPaperPreview();
@@ -2115,6 +2175,7 @@
     (async function init() {
       const entry = guardAdminAccess();
       if (!entry) return;
+      $('#asListLink').href = getReturnListUrl();
 
       applyProcessHeaderImage();
 
