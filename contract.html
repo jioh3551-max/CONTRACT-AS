@@ -712,10 +712,9 @@
       'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec'
     ];
     const SHARE_SITE_URL = 'https://contract-as.pages.dev';
-    const HTML2CANVAS_URL = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
 
-    const state = { contracts: [], asRequests: [], source: 'local', currentContract: null, captureLibPromise: null, shareBusy: false };
+    const state = { contracts: [], asRequests: [], source: 'local', currentContract: null, shareBusy: false };
 
     const $ = (s) => document.querySelector(s);
     const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
@@ -1021,145 +1020,11 @@
       return url.toString();
     }
 
-    function buildContractShareText(contract) {
-      const customerName = normalizeContractTextValue(contract?.customerName) || '고객';
-      return [
-        `${customerName} 고객님 계약 확인용 이미지입니다.`,
-        `계약 확인: ${getShareTargetUrl(contract)}`,
-        `홈: ${SHARE_SITE_URL}`
-      ].join('\n');
-    }
-
     function buildContractSmsText() {
       return [
         '아이콩콩 계약서 확인 및 A/S 접수 링크입니다.',
         SHARE_SITE_URL
       ].join('\n');
-    }
-
-    function makeContractImageFilename(contract) {
-      const contractNo = normalizeContractTextValue(contract?.contractNo) || 'contract';
-      return `${contractNo}-고객확인용계약서.png`;
-    }
-
-    function loadHtml2Canvas() {
-      if (window.html2canvas) return Promise.resolve(window.html2canvas);
-      if (state.captureLibPromise) return state.captureLibPromise;
-
-      state.captureLibPromise = new Promise((resolve, reject) => {
-        const existing = document.querySelector('script[data-html2canvas="true"]');
-        if (existing) {
-          existing.addEventListener('load', () => resolve(window.html2canvas), { once: true });
-          existing.addEventListener('error', () => reject(new Error('이미지 공유 도구를 불러오지 못했습니다.')), { once: true });
-          return;
-        }
-
-        const script = document.createElement('script');
-        script.src = HTML2CANVAS_URL;
-        script.async = true;
-        script.dataset.html2canvas = 'true';
-        script.onload = () => {
-          if (window.html2canvas) resolve(window.html2canvas);
-          else reject(new Error('이미지 공유 도구를 불러오지 못했습니다.'));
-        };
-        script.onerror = () => reject(new Error('이미지 공유 도구를 불러오지 못했습니다.'));
-        document.head.appendChild(script);
-      }).finally(() => {
-        if (!window.html2canvas) state.captureLibPromise = null;
-      });
-
-      return state.captureLibPromise;
-    }
-
-    async function renderContractImageBlob() {
-      const html2canvas = await loadHtml2Canvas();
-      const paper = document.querySelector('.paper');
-      if (!paper) throw new Error('공유할 계약서 영역을 찾지 못했습니다.');
-
-      const canvas = await html2canvas(paper, {
-        backgroundColor: '#ffffff',
-        scale: Math.max(2, window.devicePixelRatio || 1),
-        useCORS: true,
-        logging: false,
-        scrollX: 0,
-        scrollY: -window.scrollY,
-        windowWidth: document.documentElement.scrollWidth,
-        windowHeight: document.documentElement.scrollHeight
-      });
-
-      return new Promise((resolve, reject) => {
-        canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error('계약서 이미지를 만들지 못했습니다.'));
-        }, 'image/png');
-      });
-    }
-
-    function downloadFile(file) {
-      const url = URL.createObjectURL(file);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = file.name || 'contract.png';
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-
-    async function createContractShareFile(contract) {
-      const blob = await renderContractImageBlob();
-      return new File([blob], makeContractImageFilename(contract), { type: 'image/png' });
-    }
-
-    async function shareContractImage() {
-      const contract = getCurrentContract();
-      if (!contract) {
-        setTopState(false, '공유할 계약 데이터가 없습니다.');
-        return;
-      }
-
-      setTopState(true, '계약서 이미지를 준비 중입니다.');
-
-      try {
-        const file = await createContractShareFile(contract);
-        const shareText = buildContractShareText(contract);
-        const canShareFiles = !!(
-          navigator.share
-          && (!navigator.canShare || navigator.canShare({ files: [file] }))
-        );
-
-        if (canShareFiles) {
-          await navigator.share({
-            title: `${normalizeContractTextValue(contract.customerName) || '고객'} 계약 확인용 양식`,
-            text: shareText,
-            files: [file]
-          });
-          setTopState(true, '카카오톡 전달 창을 열었습니다. 공유 목록에서 카카오톡을 선택해 보내주세요.');
-          return;
-        }
-
-        downloadFile(file);
-
-        if (navigator.share) {
-          try {
-            await navigator.share({
-              title: `${normalizeContractTextValue(contract.customerName) || '고객'} 계약 확인용 양식`,
-              text: shareText,
-              url: getShareTargetUrl(contract)
-            });
-            setTopState(true, '카카오톡 공유를 열 수 있도록 링크 공유 창을 띄웠습니다.');
-            return;
-          } catch (_) {}
-        }
-
-        setTopState(true, '이미지를 저장했습니다. 카카오톡에서 이미지를 선택해 전달해 주세요.');
-      } catch (error) {
-        if (error?.name === 'AbortError') {
-          setTopState(true, '이미지 공유를 취소했습니다.');
-          return;
-        }
-        setTopState(false, error?.message || '계약서 이미지를 공유하지 못했습니다.');
-      }
     }
 
     function setShareButtonBusy(isBusy) {
@@ -1412,7 +1277,7 @@
         return;
       }
       renderContract(contract);
-      setTopState(true, '계약 데이터가 정상 로드되었습니다. 양식 그대로 인쇄하거나 이미지로 공유할 수 있습니다.');
+      setTopState(true, '계약 데이터가 정상 로드되었습니다. 양식 그대로 인쇄하거나 링크를 공유할 수 있습니다.');
     }
 
     $('#shareBtn').addEventListener('click', shareContract);
