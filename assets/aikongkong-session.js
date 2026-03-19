@@ -1,8 +1,10 @@
 (() => {
   const AUTH_STORAGE_KEY = 'aikongkong_auth_session_v2';
   const PAGE_STATE_STORAGE_KEY = 'aikongkong_page_state_v2';
+  const SHEETS_CACHE_STORAGE_KEY = 'aikongkong_sheets_cache_v1';
   const LEGACY_ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
   const DEFAULT_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+  const DEFAULT_SHEETS_CACHE_TTL_MS = 1000 * 60 * 10;
 
   function safeParse(raw) {
     if (!raw || typeof raw !== 'string') return null;
@@ -15,6 +17,14 @@
 
   function toDigits(value) {
     return String(value || '').replace(/[^0-9]/g, '');
+  }
+
+  function normalizeCachePart(value) {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9:_-]/g, '');
   }
 
   function normalizeSession(session, options = {}) {
@@ -148,6 +158,103 @@
     localStorage.setItem(PAGE_STATE_STORAGE_KEY, JSON.stringify(allState));
   }
 
+  function readSheetsCacheStore() {
+    return safeParse(localStorage.getItem(SHEETS_CACHE_STORAGE_KEY)) || {};
+  }
+
+  function writeSheetsCacheStore(store) {
+    localStorage.setItem(SHEETS_CACHE_STORAGE_KEY, JSON.stringify(store || {}));
+    return store || {};
+  }
+
+  function buildSheetsCacheUserKey(parts = {}) {
+    if (typeof parts === 'string') return normalizeCachePart(parts) || 'global';
+
+    const tokens = [
+      parts.role || '',
+      parts.adminId || '',
+      parts.customerId || '',
+      parts.contractId || '',
+      parts.contractNo || '',
+      toDigits(parts.phone || ''),
+      parts.name || ''
+    ]
+      .map((value) => normalizeCachePart(value))
+      .filter(Boolean);
+
+    return tokens.join(':') || 'global';
+  }
+
+  function buildSheetsCacheKey(scope, userKey = 'global') {
+    const scopeKey = normalizeCachePart(scope) || 'default';
+    const ownerKey = normalizeCachePart(userKey) || 'global';
+    return `${scopeKey}::${ownerKey}`;
+  }
+
+  function loadSheetsCache(scope, options = {}) {
+    const key = buildSheetsCacheKey(scope, options.userKey || 'global');
+    const store = readSheetsCacheStore();
+    const entry = store[key];
+    if (!entry || typeof entry !== 'object') return null;
+
+    const ttlMs = Number(options.ttlMs || entry.ttlMs || DEFAULT_SHEETS_CACHE_TTL_MS);
+    const savedAtMs = new Date(String(entry.savedAt || '')).getTime();
+    const expired = !savedAtMs || (ttlMs > 0 && (Date.now() - savedAtMs) > ttlMs);
+    if (expired && !options.allowExpired) {
+      delete store[key];
+      writeSheetsCacheStore(store);
+      return null;
+    }
+
+    return {
+      key,
+      scope: String(entry.scope || scope || '').trim(),
+      userKey: String(entry.userKey || options.userKey || 'global').trim(),
+      savedAt: String(entry.savedAt || '').trim(),
+      ttlMs,
+      data: entry.data ?? null,
+      expired
+    };
+  }
+
+  function saveSheetsCache(scope, data, options = {}) {
+    if (!scope) return null;
+    const ttlMs = Number(options.ttlMs || DEFAULT_SHEETS_CACHE_TTL_MS);
+    const userKey = String(options.userKey || 'global').trim() || 'global';
+    const key = buildSheetsCacheKey(scope, userKey);
+    const store = readSheetsCacheStore();
+    const entry = {
+      scope: String(scope).trim(),
+      userKey,
+      ttlMs,
+      savedAt: new Date().toISOString(),
+      data: data ?? null
+    };
+    store[key] = entry;
+    writeSheetsCacheStore(store);
+    return entry;
+  }
+
+  function clearSheetsCache(scope = '', options = {}) {
+    const store = readSheetsCacheStore();
+    const userKey = String(options.userKey || '').trim();
+    const scopeKey = String(scope || '').trim();
+
+    if (!scopeKey && !userKey) {
+      localStorage.removeItem(SHEETS_CACHE_STORAGE_KEY);
+      return;
+    }
+
+    Object.keys(store).forEach((key) => {
+      const entry = store[key];
+      const sameScope = !scopeKey || String(entry?.scope || '').trim() === scopeKey;
+      const sameUser = !userKey || String(entry?.userKey || '').trim() === userKey;
+      if (sameScope && sameUser) delete store[key];
+    });
+
+    writeSheetsCacheStore(store);
+  }
+
   function readReturnToUrl() {
     const raw = String(new URLSearchParams(location.search).get('returnTo') || '').trim();
     if (!raw) return '';
@@ -209,8 +316,10 @@
   window.IkongkongSession = {
     AUTH_STORAGE_KEY,
     PAGE_STATE_STORAGE_KEY,
+    SHEETS_CACHE_STORAGE_KEY,
     LEGACY_ENTRY_SESSION_KEY,
     DEFAULT_SESSION_TTL_MS,
+    DEFAULT_SHEETS_CACHE_TTL_MS,
     loadAuthSession,
     saveAuthSession,
     clearAuthSession,
@@ -218,6 +327,10 @@
     savePageState,
     restorePageState,
     clearPageState,
+    buildSheetsCacheUserKey,
+    loadSheetsCache,
+    saveSheetsCache,
+    clearSheetsCache,
     safeNavigateBack,
     readReturnToUrl,
     withReturnTo,

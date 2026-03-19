@@ -498,7 +498,7 @@
             </div>
             <div class="step-guide-item">
               <strong>3</strong>
-              <div>접수 후 담당 시공자 또는 본사에서 연락드리며, 처리되면 내 AS 내역에서 바로 확인할 수 있습니다.</div>
+          <div>접수 후 고객센터에서 순차적으로 확인해 드리며, 처리되면 내 AS 내역에서 바로 확인할 수 있습니다.</div>
             </div>
           </div>
           <form id="customerAsForm">
@@ -578,6 +578,8 @@
     const MAX_AS_IMAGE_COUNT = 4;
     const MAX_AS_IMAGE_DATA_URL_LENGTH = 45000;
     const MAX_AS_IMAGE_EDGE = 960;
+    const SHEETS_CACHE_TTL_MS = 1000 * 60 * 10;
+    const CUSTOMER_DATA_CACHE_SCOPE = 'customerData';
     const CUSTOMER_PAGE_STATE_KEY = 'customer_page_state_v2';
 
     const seedData = {
@@ -780,6 +782,9 @@
       if (state.source === 'sheets') {
         el.textContent = '데이터 소스: Google Sheets';
         el.className = 'chip success';
+      } else if (state.source === 'cache') {
+        el.textContent = '데이터 소스: 최근 조회 캐시';
+        el.className = 'chip';
       } else if (state.source === 'checking') {
         el.textContent = '데이터 소스: 확인 중';
         el.className = 'chip';
@@ -854,6 +859,50 @@
       state.asRequests = Array.isArray(parsed.asRequests)
         ? parsed.asRequests.map((item, idx) => normalizeAsRequestItem(item, idx))
         : [];
+    }
+
+    function getCustomerCacheUserKey(entry = {}) {
+      return authSession.buildSheetsCacheUserKey({
+        role: 'customer',
+        customerId: String(entry?.customerId || state.currentCustomer?.id || '').trim(),
+        contractNo: String(entry?.contractNo || state.currentCustomer?.contractNo || '').trim(),
+        phone: toDigits(entry?.phone || state.currentCustomer?.phone || ''),
+        name: String(entry?.name || state.currentCustomer?.customerName || '').trim()
+      });
+    }
+
+    function applyCustomerDataset(data, source = 'local') {
+      const customer = data?.customer ? mergeContractFieldsFromLocal([data.customer])[0] : null;
+      state.contracts = customer ? [customer] : [];
+      state.asRequests = Array.isArray(data?.asRequests)
+        ? data.asRequests.map((item, idx) => normalizeAsRequestItem(item, idx))
+        : [];
+      state.source = source;
+      saveLocal();
+    }
+
+    function readCachedCustomerData(entry = {}) {
+      const cached = authSession.loadSheetsCache(CUSTOMER_DATA_CACHE_SCOPE, {
+        userKey: getCustomerCacheUserKey(entry),
+        ttlMs: SHEETS_CACHE_TTL_MS
+      });
+      return cached?.data || null;
+    }
+
+    function writeCachedCustomerData(entry = {}) {
+      authSession.saveSheetsCache(CUSTOMER_DATA_CACHE_SCOPE, {
+        customer: state.currentCustomer || state.contracts?.[0] || null,
+        asRequests: Array.isArray(state.asRequests) ? state.asRequests : []
+      }, {
+        userKey: getCustomerCacheUserKey(entry),
+        ttlMs: SHEETS_CACHE_TTL_MS
+      });
+    }
+
+    function clearCustomerCache(entry = {}) {
+      authSession.clearSheetsCache(CUSTOMER_DATA_CACHE_SCOPE, {
+        userKey: getCustomerCacheUserKey(entry)
+      });
     }
 
     function hasStoredLocalData() {
@@ -1003,11 +1052,23 @@
       return data;
     }
 
-    async function loadData() {
+    async function loadData(options = {}) {
+      const entry = options.entry || loadEntrySession() || {};
+      if (!options.forceRemote) {
+        const cached = readCachedCustomerData(entry);
+        if (cached) {
+          applyCustomerDataset(cached, 'cache');
+          setDataSourceNotice('최근 조회한 계약 정보를 바로 불러왔습니다.', 'success');
+          setSourceChip();
+          return;
+        }
+      }
+
       const apiUrl = getSheetsApiUrl();
       if (apiUrl) {
         try {
           await loadRemote();
+          writeCachedCustomerData(entry);
           setDataSourceNotice('데이터 소스: Google Sheets (실시간)', 'success');
           setSourceChip();
           return;
@@ -1117,9 +1178,6 @@
       const asItems = getMyAsItems();
       const pendingCount = asItems.filter((item) => String(item.status || '') !== '처리완료').length;
       const completedCount = asItems.filter((item) => String(item.status || '') === '처리완료').length;
-      const installerPhone = toDigits(c.installerPhone || '');
-      const installerLabel = c.installerName ? `${c.installerName} 시공자` : '담당 시공자';
-
       titleEl.textContent = `${c.customerName || '고객'} 고객님, 바로 확인할 수 있어요`;
       subEl.textContent = `${c.contractNo || '-'} · ${c.installDate || '-'} 시공 · ${c.product || '-'}${c.color ? ` / ${c.color}` : ''}`;
       badgesEl.innerHTML = `
@@ -1130,11 +1188,12 @@
       actionsEl.innerHTML = `
         <button id="heroGoAsBtn" class="btn primary" type="button">AS 접수하기</button>
         <button id="heroCopyContractBtn" class="btn outline" type="button">계약번호 복사</button>
-        ${installerPhone ? `<a class="btn secondary" href="tel:${installerPhone}">${installerLabel} 연락</a>` : ''}
+        <button id="heroGoAsListBtn" class="btn secondary" type="button">내 AS 보기</button>
       `;
 
       $('#heroGoAsBtn')?.addEventListener('click', () => goPage('customerAsFormPage'));
       $('#heroCopyContractBtn')?.addEventListener('click', () => copyText(c.contractNo, '계약번호'));
+      $('#heroGoAsListBtn')?.addEventListener('click', () => goPage('customerAsListPage'));
     }
 
     function renderAsStatusSummary() {
@@ -1167,10 +1226,6 @@
       content.style.display = 'block';
 
       const c = state.currentCustomer;
-      const installerPhone = toDigits(c.installerPhone || '');
-      const installerAction = installerPhone
-        ? `<a class="btn secondary" href="tel:${installerPhone}">담당 시공자 연락</a>`
-        : `<a class="btn secondary" href="tel:16702659">고객센터 연락</a>`;
       const signHtml = c.signatureImage
         ? `<div style="margin-top:10px;"><div class="muted">전자서명</div><img class="thumb-sign" src="${c.signatureImage}" alt="전자서명" /></div>`
         : '';
@@ -1186,16 +1241,18 @@
           </div>
           <div class="line-note">주소: ${c.address || '-'}<br>제품: ${c.product || '-'} / ${c.color || '-'}<br>시공일: ${c.installDate || '-'} / ${c.installRound || '-'}<br>할인: ${c.discountTypes || '-'}${c.discountEtc ? ' / ' + c.discountEtc : ''}</div>
           <div class="line-note" style="margin-top:8px;">시공 특이사항: ${c.installNote || '-'}</div>
+          <div class="muted" style="margin-top:10px;">문의는 고객센터 또는 A/S 접수 메뉴로 남겨주시면 순서대로 확인해 드립니다.</div>
           ${signHtml}
           <div class="actions">
             <button class="btn outline" type="button" id="copyContractBtn">계약번호 복사</button>
-            ${installerAction}
+            <button class="btn secondary" type="button" id="moveToAsFormBtn">AS 접수하기</button>
             <a class="btn secondary" href="${authSession.withReturnTo(`./contract.html?id=${encodeURIComponent(c.id || '')}`, `./customer.html?page=${encodeURIComponent(state.currentPage || 'customerContractPage')}`)}">계약서 페이지 열기</a>
           </div>
         </div>
       `;
 
       $('#copyContractBtn').addEventListener('click', () => copyText(c.contractNo, '계약번호'));
+      $('#moveToAsFormBtn').addEventListener('click', () => goPage('customerAsFormPage'));
     }
 
     function renderAsForm() {
@@ -1335,12 +1392,14 @@
         const saved = normalizeAsRequestItem(data.asRequest || payload);
         state.asRequests.push(saved);
         saveLocal();
+        writeCachedCustomerData(loadEntrySession() || {});
         state.source = 'sheets';
         setSourceChip();
         showAsSubmitMessage('AS 접수가 완료되었습니다. 담당자가 확인 후 연락드립니다.', 'success');
       } catch (err) {
         state.asRequests.push(normalizeAsRequestItem(payload));
         saveLocal();
+        writeCachedCustomerData(loadEntrySession() || {});
         state.source = 'local';
         setSourceChip();
         showAsSubmitMessage(`구글시트 저장 실패로 로컬에 저장했습니다: ${err.message}`, 'error');
@@ -1361,6 +1420,7 @@
 
     $('#topLogoutBtn').addEventListener('click', () => {
       if (!confirm('정말 로그아웃 하시겠습니까?')) return;
+      clearCustomerCache(loadEntrySession() || {});
       authSession.clearAuthSession();
       location.href = './index.html?manual=1';
     });
@@ -1407,7 +1467,7 @@
       setDataSourceNotice('Google Sheets 계약 정보를 불러오는 중입니다.');
       setSourceChip();
 
-      await loadData();
+      await loadData({ entry });
 
       restoreContractsForCurrentUser(entry);
       if (!state.currentCustomer) {

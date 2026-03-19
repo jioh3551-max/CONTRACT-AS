@@ -474,6 +474,8 @@
       'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec'
     ];
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
+    const SHEETS_CACHE_TTL_MS = 1000 * 60 * 10;
+    const AS_DETAIL_CACHE_SCOPE = 'asDetail';
 
     const state = {
       contracts: [],
@@ -595,6 +597,43 @@
         : [];
     }
 
+    function getAsDetailCacheUserKey(asId = getQueryAsId()) {
+      return authSession.buildSheetsCacheUserKey({
+        role: 'as',
+        contractId: String(asId || '').trim()
+      });
+    }
+
+    function applyAsDetailDataset(data, source = 'local') {
+      const remoteContract = data?.contract ? mergeContractFieldsFromLocal([data.contract])[0] : null;
+      state.contracts = remoteContract ? [remoteContract] : [];
+      state.asRequests = data?.asRequest ? [normalizeAsRequestItem(data.asRequest, 0)] : [];
+      if (data?.currentAdmin && typeof data.currentAdmin === 'object') {
+        state.currentAdmin = {
+          ...state.currentAdmin,
+          ...data.currentAdmin,
+          phone: toDigits(data.currentAdmin.phone || state.currentAdmin?.phone || '')
+        };
+      }
+      state.source = source;
+      saveLocal();
+    }
+
+    function readCachedAsDetail() {
+      const cached = authSession.loadSheetsCache(AS_DETAIL_CACHE_SCOPE, {
+        userKey: getAsDetailCacheUserKey(),
+        ttlMs: SHEETS_CACHE_TTL_MS
+      });
+      return cached?.data || null;
+    }
+
+    function writeCachedAsDetail(data) {
+      authSession.saveSheetsCache(AS_DETAIL_CACHE_SCOPE, data, {
+        userKey: getAsDetailCacheUserKey(data?.asRequest?.id || getQueryAsId()),
+        ttlMs: SHEETS_CACHE_TTL_MS
+      });
+    }
+
     function getLocalContractsBackup() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -703,20 +742,12 @@
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || '구글시트 데이터 로드 실패');
 
-      const remoteContract = data.contract ? mergeContractFieldsFromLocal([data.contract])[0] : null;
-      state.contracts = remoteContract ? [remoteContract] : [];
-      state.asRequests = data.asRequest
-        ? [normalizeAsRequestItem(data.asRequest, 0)]
-        : [];
-      if (data.currentAdmin && typeof data.currentAdmin === 'object') {
-        state.currentAdmin = {
-          ...state.currentAdmin,
-          ...data.currentAdmin,
-          phone: toDigits(data.currentAdmin.phone || state.currentAdmin?.phone || '')
-        };
-      }
-      state.source = 'sheets';
-      saveLocal();
+      applyAsDetailDataset(data, 'sheets');
+      writeCachedAsDetail({
+        contract: state.contracts[0] || null,
+        asRequest: state.asRequests[0] || null,
+        currentAdmin: state.currentAdmin || null
+      });
     }
 
     async function postRemote(action, payload) {
@@ -736,7 +767,21 @@
       return data;
     }
 
-    async function loadData() {
+    async function loadData(options = {}) {
+      if (!options.forceRemote) {
+        const cached = readCachedAsDetail();
+        if (cached) {
+          applyAsDetailDataset(cached, 'cache');
+          return;
+        }
+
+        loadLocal();
+        if (findAccessibleRequest()) {
+          state.source = 'cache';
+          return;
+        }
+      }
+
       const apiUrl = getSheetsApiUrl();
       if (apiUrl) {
         try {
@@ -874,6 +919,11 @@
 
     function updateSourceChip() {
       const el = $('#sourceChip');
+      if (state.source === 'cache') {
+        el.textContent = '데이터 소스: 최근 조회 캐시';
+        el.className = 'chip';
+        return;
+      }
       if (state.source === 'sheets') {
         el.textContent = '데이터 소스: Google Sheets';
         el.className = 'chip success';
@@ -1011,8 +1061,13 @@
       updateSourceChip();
     }
 
-    async function refreshRequest(showMessage = false) {
-      await loadData();
+    async function refreshRequest(showMessage = false, forceRemote = false) {
+      if (forceRemote) {
+        authSession.clearSheetsCache(AS_DETAIL_CACHE_SCOPE, {
+          userKey: getAsDetailCacheUserKey()
+        });
+      }
+      await loadData({ forceRemote });
       updateSourceChip();
 
       const request = findAccessibleRequest();
@@ -1028,7 +1083,7 @@
     }
 
     $('#refreshBtn').addEventListener('click', async () => {
-      await refreshRequest(true);
+      await refreshRequest(true, true);
     });
     $('#logoutBtn')?.addEventListener('click', logoutAdminSession);
 

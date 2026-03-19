@@ -310,6 +310,8 @@
       'https://script.google.com/macros/s/AKfycbyKNzu0YgVz5nuwldhlH5XyJefzvBMPT68B3LfrcRzvdiDw5TzKqe7KsRASdk3AcaP6/exec'
     ];
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
+    const SHEETS_CACHE_TTL_MS = 1000 * 60 * 10;
+    const INSTALLER_DATA_CACHE_SCOPE = 'installerData';
     const RECENT_CONTRACT_LIMIT = 10;
     const CONTRACT_LIST_PAGE_STATE_KEY = 'admin_contract_list_state_v2';
 
@@ -397,6 +399,9 @@
       if (state.source === 'sheets') {
         el.textContent = '데이터 소스: Google Sheets';
         el.className = 'chip success';
+      } else if (state.source === 'cache') {
+        el.textContent = '데이터 소스: 최근 조회 캐시';
+        el.className = 'chip';
       } else {
         el.textContent = '데이터 소스: Local Backup';
         el.className = 'chip';
@@ -459,6 +464,47 @@
       const parsed = JSON.parse(raw);
       state.contracts = parsed.contracts || [];
       state.asRequests = parsed.asRequests || [];
+    }
+
+    function getInstallerDataCacheUserKey() {
+      return authSession.buildSheetsCacheUserKey({
+        role: 'admin',
+        adminId: String(state.currentAdminId || '').trim(),
+        phone: toDigits(state.currentAdminPhone || ''),
+        name: String(state.currentAdminName || '').trim()
+      });
+    }
+
+    function applyInstallerDataset(data, source = 'local') {
+      const remoteContracts = Array.isArray(data?.contracts) ? data.contracts : [];
+      state.contracts = mergeContractFieldsFromLocal(remoteContracts);
+      state.asRequests = Array.isArray(data?.asRequests) ? data.asRequests : [];
+      state.source = source;
+      saveLocal();
+    }
+
+    function readCachedInstallerDataset() {
+      const cached = authSession.loadSheetsCache(INSTALLER_DATA_CACHE_SCOPE, {
+        userKey: getInstallerDataCacheUserKey(),
+        ttlMs: SHEETS_CACHE_TTL_MS
+      });
+      return cached?.data || null;
+    }
+
+    function writeCachedInstallerDataset() {
+      authSession.saveSheetsCache(INSTALLER_DATA_CACHE_SCOPE, {
+        contracts: Array.isArray(state.contracts) ? state.contracts : [],
+        asRequests: Array.isArray(state.asRequests) ? state.asRequests : []
+      }, {
+        userKey: getInstallerDataCacheUserKey(),
+        ttlMs: SHEETS_CACHE_TTL_MS
+      });
+    }
+
+    function clearInstallerDatasetCache() {
+      authSession.clearSheetsCache(INSTALLER_DATA_CACHE_SCOPE, {
+        userKey: getInstallerDataCacheUserKey()
+      });
     }
 
     function getLocalContractsBackup() {
@@ -567,14 +613,21 @@
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || '데이터 로드 실패');
 
-      const remoteContracts = Array.isArray(data.contracts) ? data.contracts : [];
-      state.contracts = mergeContractFieldsFromLocal(remoteContracts);
-      state.asRequests = Array.isArray(data.asRequests) ? data.asRequests : [];
-      state.source = 'sheets';
-      saveLocal();
+      applyInstallerDataset(data, 'sheets');
+      writeCachedInstallerDataset();
     }
 
-    async function loadData() {
+    async function loadData(options = {}) {
+      if (!options.forceRemote) {
+        const cached = readCachedInstallerDataset();
+        if (cached) {
+          applyInstallerDataset(cached, 'cache');
+          showStatus('최근 조회한 계약 목록을 바로 불러왔습니다.', 'success');
+          setSourceChip();
+          return;
+        }
+      }
+
       const apiUrl = getSheetsApiUrl();
       if (apiUrl) {
         try {
@@ -801,7 +854,8 @@
     });
 
     $('#refreshBtn').addEventListener('click', async () => {
-      await loadData();
+      clearInstallerDatasetCache();
+      await loadData({ forceRemote: true });
       renderContractList();
       persistPageState();
       showStatus('데이터를 새로고침했습니다.', 'success');

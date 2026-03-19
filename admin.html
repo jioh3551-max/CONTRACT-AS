@@ -1399,7 +1399,7 @@
                     <div class="paper-policy-list">
                       <div class="paper-policy-item">
                         <span class="paper-policy-check">☑</span>
-                        <p class="paper-policy-text">A/S가 필요한 부분의 사진과 매트 앞뒷면을 찍어서 아이콩콩매트 카카오채널 또는 담당 시공기사에게 접수해 주세요. 계약자 성명, 번호, 주소, 시공일자, 제품종류를 꼭 적어주세요.</p>
+            <p class="paper-policy-text">A/S가 필요한 부분의 사진과 매트 앞뒷면을 찍어서 아이콩콩매트 고객센터 또는 공식 접수 경로로 접수해 주세요. 계약자 성명, 번호, 주소, 시공일자, 제품종류를 꼭 적어주세요.</p>
                       </div>
                     </div>
                   </div>
@@ -1524,6 +1524,8 @@
     ];
     const ADMIN_PAGE_STATE_KEY = 'admin_page_state_v2';
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
+    const SHEETS_CACHE_TTL_MS = 1000 * 60 * 10;
+    const INSTALLER_DATA_CACHE_SCOPE = 'installerData';
     const RECENT_CONTRACT_LIMIT = 10;
     const MAT_PRODUCT_CATALOG = [
       { name: '프리미엄600', unitPrice: 22000, aliases: ['프리미엄 600'] },
@@ -2247,6 +2249,12 @@
         return;
       }
 
+      if (state.source === 'cache') {
+        el.textContent = '데이터 소스: 최근 조회 캐시';
+        el.className = 'chip';
+        return;
+      }
+
       if (state.source === 'checking') {
         el.textContent = '데이터 소스: 확인 중';
         el.className = 'chip';
@@ -2317,6 +2325,55 @@
         ? parsed.contracts.map((item) => normalizeContractRecord(item))
         : [];
       state.asRequests = normalizeAsRequests(parsed.asRequests || []);
+    }
+
+    function getInstallerDataCacheUserKey() {
+      return authSession.buildSheetsCacheUserKey({
+        role: 'admin',
+        adminId: String(state.currentAdminId || '').trim(),
+        phone: toDigits(state.currentAdminPhone || ''),
+        name: String(state.currentAdminName || '').trim()
+      });
+    }
+
+    function applyInstallerDataset(data, source = 'local') {
+      const remoteContracts = Array.isArray(data?.contracts)
+        ? data.contracts.map((item) => normalizeSheetRowToContractRecord(item))
+        : [];
+      state.contracts = mergeContractFieldsFromLocal(remoteContracts);
+      state.asRequests = normalizeAsRequests(Array.isArray(data?.asRequests) ? data.asRequests : []);
+      state.currentAdminRecord = data?.currentAdmin ? normalizeAdminSheetRecord(data.currentAdmin) : state.currentAdminRecord;
+      if (state.currentAdminRecord) {
+        state.currentAdminId = state.currentAdminRecord.id || state.currentAdminId;
+        mergeInstallerProfileFromAdmin(state.currentAdminRecord);
+      }
+      state.source = source;
+      saveLocal();
+    }
+
+    function readCachedInstallerDataset() {
+      const cached = authSession.loadSheetsCache(INSTALLER_DATA_CACHE_SCOPE, {
+        userKey: getInstallerDataCacheUserKey(),
+        ttlMs: SHEETS_CACHE_TTL_MS
+      });
+      return cached?.data || null;
+    }
+
+    function writeCachedInstallerDataset() {
+      authSession.saveSheetsCache(INSTALLER_DATA_CACHE_SCOPE, {
+        contracts: Array.isArray(state.contracts) ? state.contracts : [],
+        asRequests: Array.isArray(state.asRequests) ? state.asRequests : [],
+        currentAdmin: state.currentAdminRecord || null
+      }, {
+        userKey: getInstallerDataCacheUserKey(),
+        ttlMs: SHEETS_CACHE_TTL_MS
+      });
+    }
+
+    function clearInstallerDatasetCache() {
+      authSession.clearSheetsCache(INSTALLER_DATA_CACHE_SCOPE, {
+        userKey: getInstallerDataCacheUserKey()
+      });
     }
 
     function hasStoredLocalData() {
@@ -2435,18 +2492,8 @@
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || '데이터 로드 실패');
 
-      const remoteContracts = Array.isArray(data.contracts)
-        ? data.contracts.map((item) => normalizeSheetRowToContractRecord(item))
-        : [];
-      state.contracts = mergeContractFieldsFromLocal(remoteContracts);
-      state.asRequests = normalizeAsRequests(Array.isArray(data.asRequests) ? data.asRequests : []);
-      state.currentAdminRecord = data.currentAdmin ? normalizeAdminSheetRecord(data.currentAdmin) : null;
-      if (state.currentAdminRecord) {
-        state.currentAdminId = state.currentAdminRecord.id || state.currentAdminId;
-        mergeInstallerProfileFromAdmin(state.currentAdminRecord);
-      }
-      state.source = 'sheets';
-      saveLocal();
+      applyInstallerDataset(data, 'sheets');
+      writeCachedInstallerDataset();
       return data;
     }
 
@@ -2467,7 +2514,17 @@
       return data;
     }
 
-    async function loadData() {
+    async function loadData(options = {}) {
+      if (!options.forceRemote) {
+        const cached = readCachedInstallerDataset();
+        if (cached) {
+          applyInstallerDataset(cached, 'cache');
+          showStatus('최근 조회한 관리자 데이터를 바로 불러왔습니다.', 'success');
+          updateSourceChip();
+          return;
+        }
+      }
+
       const apiUrl = getSheetsApiUrl();
       if (apiUrl) {
         try {
@@ -2840,6 +2897,7 @@
       state.currentAdminId = savedAdmin.id || state.currentAdminId;
       state.currentAdminRecord = savedAdmin;
       mergeInstallerProfileFromAdmin(savedAdmin);
+      writeCachedInstallerDataset();
       state.source = 'sheets';
       updateSourceChip();
       return savedAdmin;
@@ -4013,7 +4071,8 @@
     });
 
     $('#summaryReloadBtn').addEventListener('click', async () => {
-      await loadData();
+      clearInstallerDatasetCache();
+      await loadData({ forceRemote: true });
       renderContractList();
       renderAdminAsList();
       persistPageState();
@@ -4026,7 +4085,8 @@
     });
 
     $('#asReloadBtn').addEventListener('click', async () => {
-      await loadData();
+      clearInstallerDatasetCache();
+      await loadData({ forceRemote: true });
       renderAdminAsList();
     });
 
@@ -4212,6 +4272,11 @@
         upsertContractState(saved);
         savedContract = saved;
         saveLocal();
+        writeCachedInstallerDataset();
+        authSession.saveSheetsCache('contractDetail', { contract: saved }, {
+          userKey: authSession.buildSheetsCacheUserKey({ role: 'contract', contractId: String(saved.id || '') }),
+          ttlMs: SHEETS_CACHE_TTL_MS
+        });
         state.source = 'sheets';
         updateSourceChip();
         showStatus(`${actionLabel} 완료`, 'success');
@@ -4219,6 +4284,7 @@
         upsertContractState(payloadRecord);
         savedContract = payloadRecord;
         saveLocal();
+        writeCachedInstallerDataset();
         state.source = 'local';
         updateSourceChip();
         showStatus(`원격 저장 실패로 ${actionLabel} 내용을 로컬 백업에 우선 반영했습니다: ${err.message}`, 'error');

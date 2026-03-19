@@ -638,7 +638,7 @@
               <div class="policy-list">
                 <div class="policy-item">
                   <span class="policy-check">☑</span>
-                  <p class="policy-text">A/S가 필요한 부분의 사진과 매트 앞뒷면을 찍어서 아이콩콩매트 카카오채널 또는 담당 시공기사에게 접수해 주세요. 계약자 성명, 번호, 주소, 시공일자, 제품종류를 꼭 적어주세요.</p>
+          <p class="policy-text">A/S가 필요한 부분의 사진과 매트 앞뒷면을 찍어서 아이콩콩매트 고객센터 또는 공식 접수 경로로 접수해 주세요. 계약자 성명, 번호, 주소, 시공일자, 제품종류를 꼭 적어주세요.</p>
                 </div>
               </div>
             </div>
@@ -715,6 +715,8 @@
     ];
     const SHARE_SITE_URL = 'https://contract-as.pages.dev';
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
+    const SHEETS_CACHE_TTL_MS = 1000 * 60 * 10;
+    const CONTRACT_DETAIL_CACHE_SCOPE = 'contractDetail';
 
     const state = {
       contracts: [],
@@ -730,6 +732,13 @@
     const $ = (s) => document.querySelector(s);
     const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
     const authSession = window.IkongkongSession;
+
+    function getContractCacheUserKey(contractId = getQueryContractId()) {
+      return authSession.buildSheetsCacheUserKey({
+        role: 'contract',
+        contractId: String(contractId || '').trim()
+      });
+    }
 
     function getSheetsApiUrl() {
       const fromLocal = String(localStorage.getItem(SHEETS_API_URL_KEY) || '').trim();
@@ -787,6 +796,24 @@
       const parsed = JSON.parse(raw);
       state.contracts = parsed.contracts || [];
       state.asRequests = parsed.asRequests || [];
+    }
+
+    function readCachedContractRecord(contractId = getQueryContractId()) {
+      const cached = authSession.loadSheetsCache(CONTRACT_DETAIL_CACHE_SCOPE, {
+        userKey: getContractCacheUserKey(contractId),
+        ttlMs: SHEETS_CACHE_TTL_MS
+      });
+      return cached?.data?.contract || null;
+    }
+
+    function writeCachedContractRecord(contract) {
+      if (!contract?.id) return;
+      authSession.saveSheetsCache(CONTRACT_DETAIL_CACHE_SCOPE, {
+        contract
+      }, {
+        userKey: getContractCacheUserKey(contract.id),
+        ttlMs: SHEETS_CACHE_TTL_MS
+      });
     }
 
     function getLocalContractsBackup() {
@@ -908,9 +935,31 @@
       state.asRequests = [];
       state.source = 'sheets';
       saveLocal();
+      if (remoteContract) writeCachedContractRecord(remoteContract);
     }
 
-    async function loadData() {
+    async function loadData(options = {}) {
+      const contractId = getQueryContractId();
+      if (!options.forceRemote && contractId) {
+        const cachedContract = readCachedContractRecord(contractId);
+        if (cachedContract) {
+          state.contracts = [cachedContract];
+          state.asRequests = [];
+          state.source = 'cache';
+          saveLocal();
+          return;
+        }
+
+        loadLocal();
+        const localContract = fetchContractById(contractId);
+        if (localContract) {
+          state.contracts = [localContract];
+          state.asRequests = [];
+          state.source = 'cache';
+          return;
+        }
+      }
+
       const apiUrl = getSheetsApiUrl();
       if (apiUrl) {
         try {
@@ -945,7 +994,9 @@
       const el = $('#topNotice');
       el.className = `notice ${ok ? '' : 'error'}`.trim();
       el.textContent = text;
-      $('#sourceBadge').textContent = state.source === 'sheets' ? 'Google Sheets' : 'Local Backup';
+      $('#sourceBadge').textContent = state.source === 'sheets'
+        ? 'Google Sheets'
+        : (state.source === 'cache' ? '최근 조회 캐시' : 'Local Backup');
     }
 
     function formatDisplayDate(value) {
@@ -1390,8 +1441,13 @@
       authSession.safeNavigateBack(fallback);
     }
 
-    async function refreshContract() {
-      await loadData();
+    async function refreshContract(forceRemote = false) {
+      if (forceRemote) {
+        authSession.clearSheetsCache(CONTRACT_DETAIL_CACHE_SCOPE, {
+          userKey: getContractCacheUserKey()
+        });
+      }
+      await loadData({ forceRemote });
       const contract = findContract();
       if (!contract) {
         resetShareAsset();
@@ -1407,7 +1463,7 @@
     $('#smsBtn').addEventListener('click', openCustomerSms);
     $('#backBtn').addEventListener('click', goBackFromContract);
     $('#printBtn').addEventListener('click', () => window.print());
-    $('#refreshBtn').addEventListener('click', refreshContract);
+    $('#refreshBtn').addEventListener('click', () => refreshContract(true));
     $('#logoutBtn').addEventListener('click', logoutFromContract);
     setShareButtonBusy(false);
     setShareButtonAvailability(null);
