@@ -547,7 +547,7 @@
         </div>
         <div class="actions">
           <button id="backBtn" class="btn secondary" type="button">뒤로가기</button>
-          <button id="shareImageBtn" class="btn secondary" type="button">카톡 전달하기</button>
+          <button id="shareBtn" class="btn secondary" type="button">공유하기</button>
           <button id="smsBtn" class="btn secondary" type="button">문자 보내기</button>
           <button id="printBtn" class="btn primary" type="button">인쇄</button>
           <button id="refreshBtn" class="btn secondary" type="button">새로고침</button>
@@ -715,7 +715,7 @@
     const HTML2CANVAS_URL = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
 
-    const state = { contracts: [], asRequests: [], source: 'local', currentContract: null, captureLibPromise: null };
+    const state = { contracts: [], asRequests: [], source: 'local', currentContract: null, captureLibPromise: null, shareBusy: false };
 
     const $ = (s) => document.querySelector(s);
     const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
@@ -1162,6 +1162,108 @@
       }
     }
 
+    function setShareButtonBusy(isBusy) {
+      state.shareBusy = Boolean(isBusy);
+      const button = $('#shareBtn');
+      if (!button) return;
+      button.disabled = state.shareBusy;
+      button.textContent = state.shareBusy ? '공유 준비 중...' : '공유하기';
+    }
+
+    function setShareButtonAvailability(contract) {
+      const button = $('#shareBtn');
+      if (!button) return;
+      const isAvailable = Boolean(String(contract?.id || '').trim() || String(contract?.contractNo || '').trim());
+      button.disabled = !isAvailable || state.shareBusy;
+    }
+
+    function buildContractSharePayload(contract) {
+      return {
+        title: '시공 계약서',
+        text: '아래 링크에서 시공 계약서를 확인하실 수 있습니다.',
+        url: getShareTargetUrl(contract)
+      };
+    }
+
+    async function copyContractLinkWithFallback(url) {
+      const value = String(url || '').trim();
+      if (!value) return false;
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+        return true;
+      }
+
+      const helper = document.createElement('textarea');
+      helper.value = value;
+      helper.setAttribute('readonly', '');
+      helper.style.position = 'fixed';
+      helper.style.opacity = '0';
+      helper.style.pointerEvents = 'none';
+      document.body.appendChild(helper);
+      helper.focus();
+      helper.select();
+      const copied = document.execCommand('copy');
+      helper.remove();
+      return copied;
+    }
+
+    async function shareContract() {
+      const contract = getCurrentContract();
+      if (!contract) {
+        setTopState(false, '공유할 계약 데이터가 없습니다.');
+        return;
+      }
+
+      const payload = buildContractSharePayload(contract);
+      if (!payload.url) {
+        setTopState(false, '공유할 계약서 링크를 만들지 못했습니다.');
+        return;
+      }
+
+      if (state.shareBusy) {
+        setTopState(true, '공유 창을 준비 중입니다. 잠시만 기다려주세요.');
+        return;
+      }
+
+      setShareButtonBusy(true);
+      setTopState(true, '공유 창을 준비 중입니다.');
+
+      try {
+        if (navigator.share) {
+          await navigator.share(payload);
+          setTopState(true, '기기 기본 공유 창을 열었습니다.');
+          return;
+        }
+
+        const copied = await copyContractLinkWithFallback(payload.url);
+        if (copied) {
+          setTopState(true, '공유 기능을 지원하지 않는 환경입니다. 링크가 복사되었습니다.');
+          return;
+        }
+
+        setTopState(false, '공유를 지원하지 않는 환경이며 링크 복사도 사용할 수 없습니다.');
+      } catch (error) {
+        if (error?.name === 'AbortError' || error?.name === 'NotAllowedError') {
+          setTopState(true, '공유를 취소했습니다.');
+          return;
+        }
+
+        try {
+          const copied = await copyContractLinkWithFallback(payload.url);
+          if (copied) {
+            setTopState(true, '공유에 실패해 링크를 대신 복사했습니다.');
+            return;
+          }
+        } catch (_) {}
+
+        setTopState(false, error?.message || '공유를 완료하지 못했습니다.');
+      } finally {
+        setShareButtonBusy(false);
+        setShareButtonAvailability(contract);
+      }
+    }
+
     function openCustomerSms() {
       const contract = getCurrentContract();
       if (!contract) {
@@ -1193,6 +1295,7 @@
 
     function renderContract(contract) {
       state.currentContract = contract;
+      setShareButtonAvailability(contract);
       const moneyDigits = String(contract.totalPrice || '').replace(/[^0-9]/g, '');
       const moneyText = moneyDigits ? `${Number(moneyDigits).toLocaleString()}원` : '-';
       const paymentSummary = contract.paymentSummary
@@ -1312,12 +1415,14 @@
       setTopState(true, '계약 데이터가 정상 로드되었습니다. 양식 그대로 인쇄하거나 이미지로 공유할 수 있습니다.');
     }
 
-    $('#shareImageBtn').addEventListener('click', shareContractImage);
+    $('#shareBtn').addEventListener('click', shareContract);
     $('#smsBtn').addEventListener('click', openCustomerSms);
     $('#backBtn').addEventListener('click', goBackFromContract);
     $('#printBtn').addEventListener('click', () => window.print());
     $('#refreshBtn').addEventListener('click', refreshContract);
     $('#logoutBtn').addEventListener('click', logoutFromContract);
+    setShareButtonBusy(false);
+    setShareButtonAvailability(null);
 
     function enableDevAutoReload() {
       if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
