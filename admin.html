@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -51,8 +51,20 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       justify-content: flex-end;
+    }
+
+    .header-nav {
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding-bottom: 2px;
+    }
+
+    .header-nav::-webkit-scrollbar,
+    .view-switch::-webkit-scrollbar {
+      display: none;
     }
 
     .hero-name {
@@ -79,23 +91,6 @@
       flex-wrap: wrap;
     }
 
-    .quick-links {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      flex-wrap: wrap;
-      margin-top: 0;
-    }
-
-    .link {
-      text-decoration: none;
-      color: #566070;
-      font-weight: 700;
-      border-bottom: 1px solid transparent;
-    }
-
-    .link:hover { border-bottom-color: #566070; }
-
     .tool-link {
       display: inline-flex;
       align-items: center;
@@ -112,6 +107,8 @@
       cursor: pointer;
       box-shadow: 0 8px 16px rgba(15, 23, 42, 0.05);
       transition: transform 0.15s ease, filter 0.2s ease, box-shadow 0.2s ease;
+      white-space: nowrap;
+      flex: 0 0 auto;
     }
 
     .tool-link:hover {
@@ -183,11 +180,23 @@
       padding: 0 2px;
     }
 
+    .mode-title {
+      margin: 0 0 8px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #708093;
+      letter-spacing: -0.01em;
+    }
+
     .view-switch {
       display: flex;
       gap: 14px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       align-items: flex-end;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding-bottom: 2px;
     }
 
     .tab-btn {
@@ -202,6 +211,8 @@
       cursor: pointer;
       letter-spacing: -0.02em;
       transition: color 0.2s ease, border-color 0.2s ease;
+      white-space: nowrap;
+      flex: 0 0 auto;
     }
 
     .tab-btn.active {
@@ -1095,7 +1106,6 @@
       .hero-name { font-size: 38px; margin-bottom: 2px; }
       .hero-arrow { font-size: 32px; }
       .chip { padding: 5px 9px; font-size: 10px; }
-      .quick-links { gap: 10px; }
       .section-gap { margin-bottom: 8px; }
       .card { padding: 14px; }
       .tab-btn { font-size: 22px; }
@@ -1116,6 +1126,7 @@
       .toolbar input { max-width: none; }
       .hero-name { font-size: 42px; }
       .tab-btn { font-size: 24px; }
+      .header-actions { width: 100%; justify-content: flex-start; }
     }
 
     @media (max-width: 540px) {
@@ -1137,27 +1148,14 @@
           <span id="sourceChip" class="chip">데이터 소스: -</span>
         </div>
       </div>
-      <div class="header-actions">
-        <a id="adminMainLink" class="tool-link primary" href="./admin.html">메인</a>
-        <a class="tool-link" href="./contracts.html">계약목록</a>
-        <button id="logoutBtn" class="tool-link logout" type="button">로그아웃</button>
-      </div>
-    </div>
-    <div class="quick-links section-gap">
-      <a class="link" href="./contract.html">고객 확인용 계약서</a>
-      <a class="link" href="./admin.html?view=contract">신규 계약 등록</a>
-      <a class="link" href="./admin.html?view=as">AS 신청 내역</a>
+      <nav id="globalNav" class="header-actions header-nav" aria-label="관리자 전역 이동"></nav>
     </div>
 
     <div id="apiStatus" class="notice section-gap">Google Sheets 연동 상태를 확인 중입니다.</div>
 
     <section class="card section-gap mode-switch">
-      <div class="view-switch">
-        <button type="button" class="tab-btn active" data-admin-view-btn="summary">운영 요약</button>
-        <button type="button" class="tab-btn" data-admin-view-btn="installer">시공자 정보</button>
-        <button type="button" class="tab-btn" data-admin-view-btn="contract">계약 등록/수정</button>
-        <button type="button" class="tab-btn" data-admin-view-btn="as">AS 신청 내역</button>
-      </div>
+      <div class="mode-title">현재 페이지 작업</div>
+      <div id="localTabNav" class="view-switch" role="tablist" aria-label="관리자 작업 탭"></div>
     </section>
 
     <section class="card section-gap" id="installerCard">
@@ -1565,6 +1563,7 @@
       contracts: [],
       asRequests: [],
       source: 'local',
+      uiRole: 'admin',
       currentAdminId: '',
       currentAdminName: '',
       currentAdminPhone: '',
@@ -1575,6 +1574,10 @@
       installerProfile: null,
       adminView: 'summary',
       editingContractId: '',
+      customerForm: {},
+      installerForm: {},
+      contractForm: {},
+      asForm: {},
       productItems: [],
       legacyProductSummary: '',
       legacyTotalPrice: '',
@@ -1585,12 +1588,112 @@
     const $$ = (s) => Array.from(document.querySelectorAll(s));
     const toDigits = (v) => String(v || '').replace(/[^0-9]/g, '');
 
+    const ROLE_NAV_CONFIG = Object.freeze({
+      admin: {
+        global: [
+          { key: 'main', label: '메인', href: './admin.html', variant: 'primary' },
+          { key: 'contracts', label: '계약목록', href: './contracts.html' },
+          { key: 'logout', label: '로그아웃', action: 'logout', variant: 'logout' }
+        ],
+        local: [
+          { key: 'summary', label: '운영 요약', view: 'summary' },
+          { key: 'installer', label: '시공자 정보', view: 'installer' },
+          { key: 'contract', label: '계약 등록/수정', view: 'contract' },
+          { key: 'as', label: 'AS 신청 내역', view: 'as' }
+        ]
+      },
+      installer: {
+        global: [
+          { key: 'main', label: '메인', href: './admin.html', variant: 'primary' },
+          { key: 'contracts', label: '계약목록', href: './contracts.html' },
+          { key: 'logout', label: '로그아웃', action: 'logout', variant: 'logout' }
+        ],
+        local: [
+          { key: 'summary', label: '운영 요약', view: 'summary' },
+          { key: 'installer', label: '시공자 정보', view: 'installer' },
+          { key: 'contract', label: '계약 등록/수정', view: 'contract' },
+          { key: 'as', label: 'AS 신청 내역', view: 'as' }
+        ]
+      },
+      customer: {
+        global: [],
+        local: []
+      }
+    });
+
     function todayString() {
       return new Date().toISOString().split('T')[0];
     }
 
     function normalizeText(v) {
       return String(v || '').trim().toLowerCase();
+    }
+
+    function dedupeMenuItems(items) {
+      const seenKeys = new Set();
+      const seenPaths = new Set();
+      const seenLabels = new Set();
+
+      return (Array.isArray(items) ? items : []).filter((item) => {
+        if (!item || typeof item !== 'object') return false;
+
+        const key = String(item.key || '').trim().toLowerCase();
+        const path = String(item.href || item.view || item.action || '').trim().toLowerCase();
+        const label = normalizeText(item.label || '');
+        const hasDuplicate =
+          (key && seenKeys.has(key)) ||
+          (path && seenPaths.has(path)) ||
+          (label && seenLabels.has(label));
+
+        if (hasDuplicate) return false;
+
+        if (key) seenKeys.add(key);
+        if (path) seenPaths.add(path);
+        if (label) seenLabels.add(label);
+        return true;
+      });
+    }
+
+    function getVisibleNavByRole(role, scope = 'global') {
+      const config = ROLE_NAV_CONFIG[role] || ROLE_NAV_CONFIG.admin;
+      return dedupeMenuItems(config?.[scope]);
+    }
+
+    function renderGlobalNav(role) {
+      const host = $('#globalNav');
+      if (!host) return;
+
+      host.innerHTML = getVisibleNavByRole(role, 'global').map((item) => {
+        const classes = ['tool-link'];
+        if (item.variant === 'primary') classes.push('primary');
+        if (item.variant === 'logout') classes.push('logout');
+
+        if (item.action === 'logout') {
+          return `<button class="${classes.join(' ')}" type="button" data-global-action="logout">${item.label}</button>`;
+        }
+
+        return `<a class="${classes.join(' ')}" href="${item.href || './admin.html'}">${item.label}</a>`;
+      }).join('');
+    }
+
+    function renderLocalTabs(role) {
+      const host = $('#localTabNav');
+      if (!host) return;
+
+      host.innerHTML = getVisibleNavByRole(role, 'local').map((item) => {
+        const isActive = item.view === state.adminView;
+        return `<button type="button" class="tab-btn${isActive ? ' active' : ''}" data-admin-view-btn="${item.view}" role="tab" aria-selected="${isActive ? 'true' : 'false'}">${item.label}</button>`;
+      }).join('');
+    }
+
+    function renderNavigation(role) {
+      renderGlobalNav(role);
+      renderLocalTabs(role);
+    }
+
+    function resolveAdminUiRole(entry) {
+      if (String(entry?.role || '').trim() === 'installer') return 'installer';
+      return 'admin';
     }
 
     function isSupportedAdminView(view) {
@@ -2165,7 +2268,9 @@
     }
 
     function saveLocal() {
-      const contracts = Array.isArray(state.contracts) ? state.contracts : [];
+      const contracts = Array.isArray(state.contracts)
+        ? state.contracts.map((item) => normalizeContractRecord(item))
+        : [];
       const asRequests = Array.isArray(state.asRequests) ? state.asRequests : [];
       if (!contracts.length && !asRequests.length) {
         localStorage.removeItem(STORAGE_KEY);
@@ -2182,7 +2287,9 @@
         return;
       }
       const parsed = JSON.parse(raw);
-      state.contracts = parsed.contracts || [];
+      state.contracts = Array.isArray(parsed.contracts)
+        ? parsed.contracts.map((item) => normalizeContractRecord(item))
+        : [];
       state.asRequests = normalizeAsRequests(parsed.asRequests || []);
     }
 
@@ -2204,7 +2311,9 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return [];
         const parsed = JSON.parse(raw);
-        return Array.isArray(parsed.contracts) ? parsed.contracts : [];
+        return Array.isArray(parsed.contracts)
+          ? parsed.contracts.map((item) => normalizeContractRecord(item))
+          : [];
       } catch (_) {
         return [];
       }
@@ -2248,14 +2357,8 @@
     }
 
     function mergeContractRecordWithLocal(remoteItem, localItem) {
-      const merged = { ...(remoteItem || {}) };
+      const merged = safeMergeContractRecord(localItem || {}, remoteItem || {});
       if (!localItem) return merged;
-
-      CONTRACT_FALLBACK_KEYS.forEach((key) => {
-        if (!hasContractValue(merged[key]) && hasContractValue(localItem[key])) {
-          merged[key] = localItem[key];
-        }
-      });
 
       ['phone', 'installerPhone'].forEach((key) => {
         const mergedDigits = toDigits(merged[key]);
@@ -2279,7 +2382,7 @@
         const local = localMap.get(String(item.id || ''));
         const merged = mergeContractRecordWithLocal(item, local);
         localMap.delete(String(item.id || ''));
-        return merged;
+        return normalizeContractRecord(merged);
       });
 
       return mergedList;
@@ -2306,7 +2409,9 @@
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || '데이터 로드 실패');
 
-      const remoteContracts = Array.isArray(data.contracts) ? data.contracts : [];
+      const remoteContracts = Array.isArray(data.contracts)
+        ? data.contracts.map((item) => normalizeSheetRowToContractRecord(item))
+        : [];
       state.contracts = mergeContractFieldsFromLocal(remoteContracts);
       state.asRequests = normalizeAsRequests(Array.isArray(data.asRequests) ? data.asRequests : []);
       state.currentAdminRecord = data.currentAdmin ? normalizeAdminSheetRecord(data.currentAdmin) : null;
@@ -2395,9 +2500,10 @@
 
     function upsertContractState(contract) {
       if (!contract || !contract.id) return;
+      const normalized = normalizeContractRecord(contract);
       const idx = state.contracts.findIndex((item) => String(item?.id || '') === String(contract.id));
-      if (idx === -1) state.contracts.push(contract);
-      else state.contracts[idx] = contract;
+      if (idx === -1) state.contracts.push(normalized);
+      else state.contracts[idx] = safeMergeContractRecord(state.contracts[idx], normalized);
     }
 
     function copyText(value, label) {
@@ -2446,6 +2552,185 @@
         signatureImage: String(source.signatureImage || ''),
         savedAt: String(source.savedAt || ''),
         signatureSavedAt: String(source.signatureSavedAt || source.savedAt || '')
+      };
+    }
+
+    function normalizeDiscountTypeList(value) {
+      if (Array.isArray(value)) {
+        return value.map((item) => String(item || '').trim()).filter(Boolean);
+      }
+      return String(value || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    function normalizeCustomerInfo(source = {}, fallback = {}) {
+      return {
+        name: String(source.name || source.customerName || fallback.name || fallback.customerName || '').trim(),
+        phone: toDigits(source.phone || source.customerPhone || fallback.phone || fallback.customerPhone || ''),
+        address: String(source.address || source.customerAddress || fallback.address || fallback.customerAddress || '').trim(),
+        signatureName: String(source.signatureName || source.customerSignName || fallback.signatureName || fallback.customerSignName || '').trim(),
+        signatureImage: String(source.signatureImage || fallback.signatureImage || '').trim()
+      };
+    }
+
+    function normalizeInstallerInfo(source = {}, fallback = {}) {
+      return {
+        installerId: String(source.installerId || fallback.installerId || '').trim(),
+        name: String(source.name || source.installerName || fallback.name || fallback.installerName || '').trim(),
+        phone: toDigits(source.phone || source.installerPhone || fallback.phone || fallback.installerPhone || ''),
+        address: String(source.address || source.installerAddress || fallback.address || fallback.installerAddress || '').trim(),
+        signatureName: String(source.signatureName || source.installerSignName || fallback.signatureName || fallback.installerSignName || '').trim(),
+        signatureImage: String(source.signatureImage || source.installerSignatureImage || fallback.signatureImage || fallback.installerSignatureImage || '').trim()
+      };
+    }
+
+    function normalizeContractMetaInfo(source = {}, fallback = {}) {
+      return {
+        contractNo: String(source.contractNo || fallback.contractNo || '').trim(),
+        product: String(source.product || fallback.product || '').trim(),
+        productItems: String(source.productItems || fallback.productItems || '').trim(),
+        color: String(source.color || fallback.color || '').trim(),
+        totalPrice: normalizeMoneyValue(source.totalPrice != null ? source.totalPrice : fallback.totalPrice),
+        paymentMethod: String(source.paymentMethod || fallback.paymentMethod || '').trim(),
+        paymentSummary: String(source.paymentSummary || fallback.paymentSummary || '').trim(),
+        installDate: String(source.installDate || fallback.installDate || '').trim(),
+        docYear: String(source.docYear || fallback.docYear || '').trim(),
+        docMonth: String(source.docMonth || fallback.docMonth || '').trim(),
+        docDay: String(source.docDay || fallback.docDay || '').trim(),
+        installRound: String(source.installRound || fallback.installRound || '').trim(),
+        discountTypes: normalizeDiscountTypeList(source.discountTypes != null ? source.discountTypes : fallback.discountTypes),
+        discountAmount: normalizeMoneyValue(source.discountAmount != null ? source.discountAmount : fallback.discountAmount),
+        discountEtc: String(source.discountEtc || fallback.discountEtc || '').trim(),
+        installNote: String(source.installNote || fallback.installNote || '').trim(),
+        createdAt: String(source.createdAt || fallback.createdAt || '').trim(),
+        updatedAt: String(source.updatedAt || fallback.updatedAt || '').trim()
+      };
+    }
+
+    function normalizeAsRequestInfo(source = {}, fallback = {}) {
+      return {
+        latestAsId: String(source.latestAsId || source.asId || fallback.latestAsId || fallback.asId || '').trim(),
+        latestAsStatus: String(source.latestAsStatus || source.status || fallback.latestAsStatus || fallback.status || '').trim(),
+        latestAsMemo: String(source.latestAsMemo || source.techNote || fallback.latestAsMemo || fallback.techNote || '').trim()
+      };
+    }
+
+    function getCustomerDisplayName(record) {
+      return String(record?.contractCustomer?.name || record?.customerName || '').trim() || '-';
+    }
+
+    function getInstallerDisplayName(record) {
+      return String(record?.installerInfo?.name || record?.installerName || '').trim() || '-';
+    }
+
+    function normalizeContractRecord(raw, fallback = {}) {
+      const source = raw && typeof raw === 'object' ? raw : {};
+      const base = fallback && typeof fallback === 'object' ? fallback : {};
+
+      const contractCustomer = normalizeCustomerInfo(source.contractCustomer || source, base.contractCustomer || base);
+      const installerInfo = normalizeInstallerInfo(source.installerInfo || source, base.installerInfo || base);
+      const contractMeta = normalizeContractMetaInfo(source.contractMeta || source, base.contractMeta || base);
+      const asRequestInfo = normalizeAsRequestInfo(source.asRequestInfo || source, base.asRequestInfo || base);
+
+      return {
+        id: String(source.id || base.id || '').trim(),
+        contractCustomer,
+        installerInfo,
+        contractMeta,
+        asRequestInfo,
+        contractNo: contractMeta.contractNo,
+        customerName: contractCustomer.name,
+        phone: contractCustomer.phone,
+        address: contractCustomer.address,
+        product: contractMeta.product,
+        productItems: contractMeta.productItems,
+        color: contractMeta.color,
+        totalPrice: contractMeta.totalPrice,
+        paymentMethod: contractMeta.paymentMethod,
+        paymentSummary: contractMeta.paymentSummary,
+        installDate: contractMeta.installDate,
+        docYear: contractMeta.docYear,
+        docMonth: contractMeta.docMonth,
+        docDay: contractMeta.docDay,
+        installRound: contractMeta.installRound,
+        discountTypes: contractMeta.discountTypes.join(', '),
+        discountAmount: contractMeta.discountAmount,
+        discountEtc: contractMeta.discountEtc,
+        installNote: contractMeta.installNote,
+        customerSignName: contractCustomer.signatureName,
+        signatureImage: contractCustomer.signatureImage,
+        installerSignName: installerInfo.signatureName,
+        installerName: installerInfo.name,
+        installerPhone: installerInfo.phone,
+        installerAddress: installerInfo.address,
+        installerSignatureImage: installerInfo.signatureImage,
+        createdAt: contractMeta.createdAt,
+        updatedAt: contractMeta.updatedAt
+      };
+    }
+
+    function normalizeSheetRowToContractRecord(row) {
+      return normalizeContractRecord(row);
+    }
+
+    function safeMergeRecordArea(prevArea, nextArea) {
+      const merged = { ...(prevArea || {}) };
+      Object.entries(nextArea || {}).forEach(([key, value]) => {
+        if (hasContractValue(value)) {
+          merged[key] = value;
+        }
+      });
+      return merged;
+    }
+
+    function safeMergeContractRecord(prev, next) {
+      const prevRecord = normalizeContractRecord(prev);
+      const nextRecord = normalizeContractRecord(next);
+
+      return normalizeContractRecord({
+        ...prevRecord,
+        ...nextRecord,
+        contractCustomer: safeMergeRecordArea(prevRecord.contractCustomer, nextRecord.contractCustomer),
+        installerInfo: safeMergeRecordArea(prevRecord.installerInfo, nextRecord.installerInfo),
+        contractMeta: safeMergeRecordArea(prevRecord.contractMeta, nextRecord.contractMeta),
+        asRequestInfo: safeMergeRecordArea(prevRecord.asRequestInfo, nextRecord.asRequestInfo)
+      });
+    }
+
+    function serializeContractRecordToSheetRow(record) {
+      const normalized = normalizeContractRecord(record);
+      return {
+        id: normalized.id,
+        contractNo: normalized.contractNo,
+        customerName: normalized.customerName,
+        phone: normalized.phone,
+        address: normalized.address,
+        product: normalized.product,
+        productItems: normalized.productItems,
+        color: normalized.color,
+        totalPrice: normalized.totalPrice,
+        paymentMethod: normalized.paymentMethod,
+        paymentSummary: normalized.paymentSummary,
+        installDate: normalized.installDate,
+        docYear: normalized.docYear,
+        docMonth: normalized.docMonth,
+        docDay: normalized.docDay,
+        installRound: normalized.installRound,
+        discountTypes: normalized.discountTypes,
+        discountAmount: normalized.discountAmount,
+        discountEtc: normalized.discountEtc,
+        installNote: normalized.installNote,
+        customerSignName: normalized.customerSignName,
+        signatureImage: normalized.signatureImage,
+        installerSignName: normalized.installerSignName,
+        installerName: normalized.installerName,
+        installerPhone: normalized.installerPhone,
+        installerAddress: normalized.installerAddress,
+        installerSignatureImage: normalized.installerSignatureImage,
+        createdAt: normalized.createdAt,
+        updatedAt: normalized.updatedAt
       };
     }
 
@@ -2624,6 +2909,62 @@
       };
     }
 
+    function collectContractFormState(formEl = $('#adminContractForm')) {
+      const form = formEl instanceof HTMLFormElement ? formEl : $('#adminContractForm');
+      const fd = form ? new FormData(form) : new FormData();
+      const installerDraft = {
+        ...(state.installerProfile || {}),
+        ...collectInstallerProfileFromInputs()
+      };
+
+      const customerForm = {
+        customer_name: String(fd.get('customerName') || '').trim(),
+        customer_phone: toDigits(fd.get('phone')),
+        customer_address: String(fd.get('address') || '').trim(),
+        customer_sign_name: String(fd.get('customerSignName') || '').trim(),
+        customer_signature_image: String(fd.get('signatureImage') || '').trim()
+      };
+
+      const installerForm = {
+        installer_name: String(installerDraft.name || '').trim(),
+        installer_phone: toDigits(installerDraft.phone || ''),
+        installer_address: String(installerDraft.address || '').trim(),
+        installer_sign_name: String(installerDraft.name || '').trim(),
+        installer_signature_image: String(state.installerProfile?.signatureImage || '').trim()
+      };
+
+      const contractForm = {
+        contract_no: String(state.editingContractId || '').trim(),
+        product: String(fd.get('product') || '').trim(),
+        product_items: String(fd.get('productItems') || '').trim(),
+        color: String(fd.get('color') || '').trim(),
+        total_price: normalizeMoneyValue(fd.get('totalPrice')),
+        payment_method: String(fd.get('paymentMethod') || '').trim(),
+        payment_summary: String(fd.get('paymentSummary') || '').trim(),
+        install_date: String(fd.get('installDate') || '').trim(),
+        doc_year: String(fd.get('docYear') || '').trim(),
+        doc_month: String(fd.get('docMonth') || '').trim(),
+        doc_day: String(fd.get('docDay') || '').trim(),
+        install_round: String(fd.get('installRound') || '').trim(),
+        discount_types: fd.getAll('discountType').map((v) => String(v || '').trim()).filter(Boolean),
+        discount_amount: normalizeMoneyValue(fd.get('discountAmount')),
+        discount_etc: String(fd.get('discountEtc') || '').trim(),
+        install_note: String(fd.get('installNote') || '').trim()
+      };
+
+      const asForm = {
+        keyword: String(state.asFilterKeyword || '').trim(),
+        status: String(state.asFilterStatus || 'all').trim() || 'all'
+      };
+
+      state.customerForm = customerForm;
+      state.installerForm = installerForm;
+      state.contractForm = contractForm;
+      state.asForm = asForm;
+
+      return { customerForm, installerForm, contractForm, asForm };
+    }
+
     function saveInstallerBaseProfile(showMessage = true) {
       if (!state.installerProfile) return false;
 
@@ -2798,26 +3139,27 @@
     }
 
     function hasUnsavedContractFormChanges() {
+      const formState = collectContractFormState();
       const textValues = [
-        $('#ovCustomerName')?.value,
-        $('#ovAddress')?.value,
-        $('#ovPhone')?.value,
-        $('#ovProduct')?.value,
-        $('#paymentMethodInput')?.value,
-        $('#totalPriceInput')?.value,
-        document.querySelector('select[name="color"]')?.value,
-        document.querySelector('textarea[name="installNote"]')?.value,
-        $('#discountAmountInput')?.value,
-        $('#discountEtcInput')?.value,
-        $('#signatureImage')?.value
+        formState.customerForm.customer_name,
+        formState.customerForm.customer_address,
+        formState.customerForm.customer_phone,
+        formState.contractForm.product,
+        formState.contractForm.payment_method,
+        formState.contractForm.total_price,
+        formState.contractForm.color,
+        formState.contractForm.install_note,
+        formState.contractForm.discount_amount,
+        formState.contractForm.discount_etc,
+        formState.customerForm.customer_signature_image
       ];
       if (textValues.some((value) => String(value || '').trim())) return true;
-      if ($$('input[name="discountType"]').some((el) => el.checked)) return true;
+      if (formState.contractForm.discount_types.length) return true;
 
-      const installDate = String($('#installDateInput')?.value || '').trim();
+      const installDate = formState.contractForm.install_date;
       if (installDate && installDate !== todayString()) return true;
 
-      const installRound = String(document.querySelector('select[name="installRound"]')?.value || '').trim();
+      const installRound = formState.contractForm.install_round;
       if (installRound && installRound !== '1차 완료') return true;
 
       return false;
@@ -3708,22 +4050,19 @@
 
       const form = e.currentTarget;
       const fd = new FormData(form);
-      const signatureImage = fd.get('signatureImage');
-      const customerName = String(fd.get('customerName') || '').trim();
-      const phone = toDigits(fd.get('phone'));
-      const discountTypes = fd.getAll('discountType').map((v) => String(v || '').trim()).filter(Boolean);
-      const discountAmount = normalizeMoneyValue(fd.get('discountAmount'));
-      const discountEtc = $('#discountEtcInput')?.disabled ? '' : String(fd.get('discountEtc') || '').trim();
-      const productSummary = String(fd.get('product') || '').trim();
-      const productItems = String(fd.get('productItems') || '').trim();
-      const nextInstallerProfile = {
-        ...(state.installerProfile || {}),
-        ...collectInstallerProfileFromInputs()
-      };
-      const installerName = String(nextInstallerProfile.name || '').trim();
-      const installerPhone = toDigits(nextInstallerProfile.phone || '');
-      const installerAddress = String(nextInstallerProfile.address || '').trim();
-      const installerSignatureImage = String(state.installerProfile?.signatureImage || '').trim();
+      const formState = collectContractFormState(form);
+      const signatureImage = formState.customerForm.customer_signature_image;
+      const customerName = formState.customerForm.customer_name;
+      const phone = formState.customerForm.customer_phone;
+      const discountTypes = formState.contractForm.discount_types;
+      const discountAmount = formState.contractForm.discount_amount;
+      const discountEtc = $('#discountEtcInput')?.disabled ? '' : formState.contractForm.discount_etc;
+      const productSummary = formState.contractForm.product;
+      const productItems = formState.contractForm.product_items;
+      const installerName = formState.installerForm.installer_name;
+      const installerPhone = formState.installerForm.installer_phone;
+      const installerAddress = formState.installerForm.installer_address;
+      const installerSignatureImage = formState.installerForm.installer_signature_image;
 
       if (phone.length < 10) {
         alert('연락처를 정확히 입력해주세요.');
@@ -3789,46 +4128,54 @@
       renderInstallerProfile();
 
       const nowIso = new Date().toISOString();
-      const paymentMethod = String(fd.get('paymentMethod') || '').trim();
-      const totalPrice = normalizeMoneyValue(fd.get('totalPrice'));
+      const paymentMethod = formState.contractForm.payment_method;
+      const totalPrice = formState.contractForm.total_price;
       const paymentSummary = buildPaymentSummary(paymentMethod, totalPrice);
-      const payload = {
+      const payloadRecord = normalizeContractRecord({
         id: editingTarget?.id || `contract_${Date.now()}`,
-        contractNo: editingTarget?.contractNo || makeContractNo(),
-        customerName,
-        phone,
-        address: fd.get('address'),
-        product: productSummary,
-        productItems,
-        color: fd.get('color'),
-        totalPrice,
-        paymentMethod,
-        paymentSummary,
-        installDate: fd.get('installDate'),
-        docYear: fd.get('docYear'),
-        docMonth: fd.get('docMonth'),
-        docDay: fd.get('docDay'),
-        installRound: fd.get('installRound'),
-        discountTypes: discountTypes.join(', '),
-        discountAmount,
-        discountEtc,
-        installNote: fd.get('installNote'),
-        customerSignName: fd.get('customerSignName'),
-        installerSignName: installerName,
-        signatureImage,
-        installerName,
-        installerPhone,
-        installerAddress,
-        installerSignatureImage,
-        createdAt: editingTarget?.createdAt || nowIso,
-        updatedAt: nowIso
-      };
+        contractCustomer: {
+          name: customerName,
+          phone,
+          address: formState.customerForm.customer_address,
+          signatureName: formState.customerForm.customer_sign_name,
+          signatureImage
+        },
+        installerInfo: {
+          installerId: String(state.currentAdminId || '').trim(),
+          name: installerName,
+          phone: installerPhone,
+          address: installerAddress,
+          signatureName: installerName,
+          signatureImage: installerSignatureImage
+        },
+        contractMeta: {
+          contractNo: editingTarget?.contractNo || makeContractNo(),
+          product: productSummary,
+          productItems,
+          color: formState.contractForm.color,
+          totalPrice,
+          paymentMethod,
+          paymentSummary,
+          installDate: formState.contractForm.install_date,
+          docYear: formState.contractForm.doc_year,
+          docMonth: formState.contractForm.doc_month,
+          docDay: formState.contractForm.doc_day,
+          installRound: formState.contractForm.install_round,
+          discountTypes,
+          discountAmount,
+          discountEtc,
+          installNote: formState.contractForm.install_note,
+          createdAt: editingTarget?.createdAt || nowIso,
+          updatedAt: nowIso
+        }
+      }, editingTarget || {});
+      const payload = serializeContractRecordToSheetRow(payloadRecord);
 
-      let savedContract = payload;
+      let savedContract = payloadRecord;
       const actionLabel = editingTarget ? '기존 계약 수정 저장' : '신규 계약 저장';
       try {
         const data = await postRemote('saveContract', { contract: payload });
-        const saved = { ...payload, ...(data.contract || {}) };
+        const saved = normalizeContractRecord({ ...payload, ...(data.contract || {}) }, payloadRecord);
         upsertContractState(saved);
         savedContract = saved;
         saveLocal();
@@ -3836,8 +4183,8 @@
         updateSourceChip();
         showStatus(`${actionLabel} 완료`, 'success');
       } catch (err) {
-        upsertContractState(payload);
-        savedContract = payload;
+        upsertContractState(payloadRecord);
+        savedContract = payloadRecord;
         saveLocal();
         state.source = 'local';
         updateSourceChip();
@@ -3848,7 +4195,7 @@
       resetContractFormFields();
       renderContractList();
 
-      const previewId = encodeURIComponent(String(savedContract.id || payload.id || ''));
+      const previewId = encodeURIComponent(String(savedContract.id || payloadRecord.id || ''));
       const previewUrl = `./contract.html?id=${previewId}`;
       const popup = window.open(previewUrl, '_blank', 'noopener');
       if (!popup) location.href = previewUrl;
