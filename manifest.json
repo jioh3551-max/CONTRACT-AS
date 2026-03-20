@@ -1,0 +1,61 @@
+{
+  "id": "./",
+  "name": "아이콩콩 계약 / AS 고객센터",
+  "short_name": "아이콩콩",
+  "description": "아이콩콩 고객 계약 확인과 AS 접수, 시공자 계약 관리와 처리 확인서를 모바일에서 빠르게 사용할 수 있는 앱입니다.",
+  "lang": "ko-KR",
+  "dir": "ltr",
+  "start_url": "./index.html?manual=1",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef2f7",
+  "theme_color": "#1b365d",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "고객 로그인",
+      "short_name": "고객",
+      "url": "./index.html?manual=1",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "관리자 페이지",
+      "short_name": "관리자",
+      "url": "./admin.html",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

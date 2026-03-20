@@ -3,6 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1b365d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="아이콩콩" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
   <title>아이콩콩 AS 처리 확인서</title>
   <style>
     * { box-sizing: border-box; }
@@ -1117,6 +1126,8 @@
   </div>
 
   <script src="./assets/aikongkong-session.js"></script>
+  <script src="./assets/aikongkong-guard.js"></script>
+  <script src="./assets/aikongkong-pwa.js"></script>
   <script>
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
@@ -2249,6 +2260,35 @@
       await refreshRequest(true, true);
     });
     $('#logoutBtn')?.addEventListener('click', logoutAdminSession);
+
+    function hasUnsavedProcessChanges() {
+      const request = state.currentRequest || {};
+      if (!request?.id) return false;
+
+      const currentStatus = cleanText($('#asStatusInput')?.value) || '접수중';
+      const currentCompletedAt = cleanText($('#completedAtInput')?.value);
+      const currentNote = getPaperProcessNoteValue();
+      const currentSignature = state.customerSignaturePad ? state.customerSignaturePad.getValue() : '';
+      const currentPhotos = Array.isArray(state.completionPhotos)
+        ? state.completionPhotos.map((item) => String(item?.dataUrl || item || '').trim()).filter(Boolean)
+        : [];
+      const savedPhotos = Array.isArray(request.completionPhotos)
+        ? request.completionPhotos.map((item) => String(item?.dataUrl || item || '').trim()).filter(Boolean)
+        : [];
+
+      return Boolean(
+        currentStatus !== cleanText(request.status || '접수중') ||
+        currentCompletedAt !== cleanText(request.completedAt) ||
+        currentNote !== cleanText(request.techNote) ||
+        currentSignature !== cleanText(request.signatureImage) ||
+        currentPhotos.length !== savedPhotos.length
+      );
+    }
+
+    window.IkongkongLeaveGuard?.bindBeforeUnload(
+      () => hasUnsavedProcessChanges(),
+      '작성 중인 AS 처리 내용이 저장되지 않을 수 있습니다.'
+    );
 
     (async function init() {
       const entry = guardAdminAccess();

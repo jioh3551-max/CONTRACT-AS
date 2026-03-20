@@ -1,0 +1,21 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" role="img" aria-label="우리아이 안심매트, 집에서도 콩콩 아이콩콩">
+  <rect width="760" height="300" fill="none"/>
+  <text x="380" y="58" text-anchor="middle" font-size="52" font-family="Arial, sans-serif" fill="#3a4960" font-weight="700">우리아이 안심매트, 집에서도 콩콩!</text>
+
+  <g transform="translate(40,76)">
+    <circle cx="88" cy="94" r="62" fill="none" stroke="#f3a6bd" stroke-width="10"/>
+    <circle cx="88" cy="18" r="12" fill="#f3a6bd"/>
+    <path d="M88 6C88 6 83 -6 72 -8" stroke="#f3a6bd" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <circle cx="63" cy="88" r="4.8" fill="#f3a6bd"/>
+    <circle cx="103" cy="88" r="4.8" fill="#f3a6bd"/>
+    <path d="M61 113 C74 130, 103 130, 116 113" stroke="#f3a6bd" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M42 78 C53 70, 57 63, 62 52" stroke="#f3a6bd" stroke-width="5" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(190,96)">
+    <text x="0" y="106" font-size="118" font-family="Arial, sans-serif" font-weight="800" fill="#55bfc0">아이</text>
+    <text x="250" y="106" font-size="118" font-family="Arial, sans-serif" font-weight="800" fill="#42a8a9">콩콩</text>
+    <circle cx="168" cy="62" r="27" fill="#f3a6bd"/>
+    <circle cx="168" cy="62" r="8" fill="#fff"/>
+  </g>
+</svg>

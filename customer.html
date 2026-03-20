@@ -3,6 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1b365d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="아이콩콩" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
   <title>아이콩콩 고객 페이지</title>
   <style>
     * { box-sizing: border-box; }
@@ -567,6 +576,8 @@
 
   <script src="./assets/aikongkong-session.js"></script>
   <script src="./assets/aikongkong-share.js"></script>
+  <script src="./assets/aikongkong-guard.js"></script>
+  <script src="./assets/aikongkong-pwa.js"></script>
   <script>
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
@@ -784,6 +795,17 @@
         el.textContent = '데이터 소스: Google Sheets';
         el.className = 'chip success';
       } else if (state.source === 'cache') {
+        const hasCacheData = (Array.isArray(state.contracts) && state.contracts.length > 0)
+          || (Array.isArray(state.asRequests) && state.asRequests.length > 0);
+        if (!hasCacheData) {
+          console.warn('[customer cache] cache badge suppressed because dataset is empty', {
+            contractsCount: Array.isArray(state.contracts) ? state.contracts.length : 0,
+            asRequestsCount: Array.isArray(state.asRequests) ? state.asRequests.length : 0
+          });
+          el.textContent = '데이터 소스: Local Backup';
+          el.className = 'chip';
+          return;
+        }
         el.textContent = '데이터 소스: 최근 조회 캐시';
         el.className = 'chip';
       } else if (state.source === 'checking') {
@@ -887,7 +909,15 @@
         userKey: getCustomerCacheUserKey(entry),
         ttlMs: SHEETS_CACHE_TTL_MS
       });
-      return cached?.data || null;
+      const data = cached?.data || null;
+      const hasCustomer = Boolean(data?.customer);
+      const asCount = Array.isArray(data?.asRequests) ? data.asRequests.length : 0;
+      console.info('[customer cache] parsed cache', { hasCustomer, asCount });
+      if (!data || (!hasCustomer && asCount === 0)) {
+        console.warn('[customer cache] empty cache dataset, skip cache source');
+        return null;
+      }
+      return data;
     }
 
     function writeCachedCustomerData(entry = {}) {
@@ -1453,6 +1483,22 @@
 
     $('#asPhotoInput').addEventListener('change', handleAsPhotoChange);
 
+    function hasUnsavedCustomerAsFormChanges() {
+      const form = $('#customerAsForm');
+      if (!form) return false;
+      const fd = new FormData(form);
+      const requestType = String(fd.get('requestType') || '').trim();
+      const contactTime = String(fd.get('contactTime') || '').trim();
+      const requestDetail = String(fd.get('requestDetail') || '').trim();
+      const hasImages = Array.isArray(state.pendingAsImages) && state.pendingAsImages.length > 0;
+      return Boolean(
+        contactTime ||
+        requestDetail ||
+        hasImages ||
+        (requestType && requestType !== '들뜸')
+      );
+    }
+
     $$('.nav button[data-page]').forEach((btn) => {
       btn.addEventListener('click', () => goPage(btn.dataset.page));
     });
@@ -1471,6 +1517,11 @@
         persistPageState({ scrollY: window.scrollY });
       }, 120);
     }, { passive: true });
+
+    window.IkongkongLeaveGuard?.bindBeforeUnload(
+      () => hasUnsavedCustomerAsFormChanges(),
+      '작성 중인 AS 접수 내용이 저장되지 않을 수 있습니다.'
+    );
 
     function enableDevAutoReload() {
       if (location.protocol !== 'http:' && location.protocol !== 'https:') return;

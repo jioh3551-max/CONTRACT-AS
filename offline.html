@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>오프라인 안내</title>
+  <meta name="theme-color" content="#1b365d" />
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --card: #ffffff;
+      --text: #172233;
+      --muted: #637287;
+      --line: #d8e1ec;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background:
+        radial-gradient(900px 280px at -10% -10%, rgba(47,145,145,0.16) 0%, rgba(47,145,145,0) 55%),
+        radial-gradient(720px 260px at 110% 0%, rgba(239,157,184,0.14) 0%, rgba(239,157,184,0) 55%),
+        var(--bg);
+      font-family: "Pretendard", "SUIT", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      color: var(--text);
+    }
+    .card {
+      width: min(100%, 420px);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 26px 22px;
+      box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 28px;
+      line-height: 1.2;
+      letter-spacing: -0.04em;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .btn {
+      min-height: 50px;
+      padding: 0 16px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn.primary {
+      background: linear-gradient(180deg, #48b7b6 0%, #2f9191 100%);
+      color: #fff;
+      border-color: rgba(47,145,145,0.18);
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>오프라인 상태입니다</h1>
+    <p>네트워크가 잠시 불안정해도 최근 본 화면은 다시 열 수 있도록 준비해두었습니다. 인터넷 연결 후 다시 시도해주세요.</p>
+    <div class="actions">
+      <button class="btn primary" type="button" onclick="location.reload()">다시 시도</button>
+      <button class="btn" type="button" onclick="location.href='./index.html?manual=1'">처음 화면</button>
+    </div>
+  </main>
+</body>
+</html>
