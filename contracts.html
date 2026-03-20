@@ -313,6 +313,7 @@
     const REMOTE_FETCH_TIMEOUT_MS = 20000;
     const SHEETS_CACHE_TTL_MS = 1000 * 60 * 10;
     const INSTALLER_DATA_CACHE_SCOPE = 'installerData';
+    const SHEETS_CACHE_STORAGE_KEY = 'aikongkong_sheets_cache_v1';
     const RECENT_CONTRACT_LIMIT = 10;
     const CONTRACT_LIST_PAGE_STATE_KEY = 'admin_contract_list_state_v2';
 
@@ -365,22 +366,20 @@
     }
 
     function getMyInstallerContractsSorted() {
+      const installerId = String(state.currentAdminId || '').trim();
       const installerName = normalizeText(state.currentAdminName);
       const installerPhone = toDigits(state.currentAdminPhone || '');
-      if (!installerName && !installerPhone) return [];
+      if (!installerId && !installerName && !installerPhone) return [];
 
       return [...state.contracts]
         .filter((item) => {
-          const itemInstallerPhone = toDigits(item?.installerPhone);
-          const itemInstallerName = normalizeText(item?.installerName);
-
-          if (installerPhone) {
-            if (itemInstallerPhone) return itemInstallerPhone === installerPhone;
-            if (installerName) return itemInstallerName === installerName;
-            return false;
-          }
-
-          return installerName && itemInstallerName === installerName;
+          const itemInstallerId = String(item?.installerId || item?.installerInfo?.installerId || '').trim();
+          const itemInstallerPhone = toDigits(item?.installerPhone || item?.installerInfo?.phone);
+          const itemInstallerName = normalizeText(item?.installerName || item?.installerInfo?.name);
+          const sameId = installerId && itemInstallerId && itemInstallerId === installerId;
+          const sameName = installerName && itemInstallerName && itemInstallerName === installerName;
+          const samePhone = installerPhone && itemInstallerPhone && itemInstallerPhone === installerPhone;
+          return Boolean(sameId || sameName || samePhone);
         })
         .sort((a, b) => getContractSortTime(b) - getContractSortTime(a));
     }
@@ -401,6 +400,16 @@
         el.textContent = '데이터 소스: Google Sheets';
         el.className = 'chip success';
       } else if (state.source === 'cache') {
+        const hasCacheContracts = Array.isArray(state.contracts) && state.contracts.length > 0;
+        if (!hasCacheContracts) {
+          console.warn('[contracts cache] cache badge suppressed because dataset is empty', {
+            contractsCount: Array.isArray(state.contracts) ? state.contracts.length : 0,
+            asRequestsCount: Array.isArray(state.asRequests) ? state.asRequests.length : 0
+          });
+          el.textContent = '데이터 소스: Local Backup';
+          el.className = 'chip';
+          return;
+        }
         el.textContent = '데이터 소스: 최근 조회 캐시';
         el.className = 'chip';
       } else {
@@ -476,20 +485,111 @@
       });
     }
 
+    function getInstallerDataCacheStorageKey() {
+      return `installerdata::${getInstallerDataCacheUserKey()}`;
+    }
+
+    function isContractObjectLike(value) {
+      return value && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    function hydrateCachedContractRecord(item, backupMap) {
+      if (typeof item === 'string') {
+        return backupMap.get(String(item).trim()) || null;
+      }
+
+      if (!isContractObjectLike(item)) return null;
+
+      const contractId = String(item.id || item.contractId || '').trim();
+      const backup = contractId ? (backupMap.get(contractId) || {}) : {};
+      const merged = { ...backup, ...item };
+
+      if (merged.contractCustomer && backup.contractCustomer) {
+        merged.contractCustomer = { ...backup.contractCustomer, ...merged.contractCustomer };
+      }
+      if (merged.installerInfo && backup.installerInfo) {
+        merged.installerInfo = { ...backup.installerInfo, ...merged.installerInfo };
+      }
+      if (merged.contractMeta && backup.contractMeta) {
+        merged.contractMeta = { ...backup.contractMeta, ...merged.contractMeta };
+      }
+
+      return merged;
+    }
+
+    function normalizeCachedInstallerDataset(data) {
+      const contractCandidates = Array.isArray(data?.contracts)
+        ? data.contracts
+        : Array.isArray(data?.contractIds)
+          ? data.contractIds
+          : Array.isArray(data?.items)
+            ? data.items
+            : [];
+      const asRequests = Array.isArray(data?.asRequests) ? data.asRequests : [];
+      const backupMap = new Map(
+        getLocalContractsBackup()
+          .filter((item) => item && item.id)
+          .map((item) => [String(item.id), item])
+      );
+      const resolvedContractIds = contractCandidates
+        .map((item) => typeof item === 'string' ? item : String(item?.id || item?.contractId || '').trim())
+        .filter(Boolean);
+      const hydratedContracts = contractCandidates
+        .map((item) => hydrateCachedContractRecord(item, backupMap))
+        .filter((item) => isContractObjectLike(item));
+
+      console.info('[contracts cache] resolved contract ids', resolvedContractIds);
+      console.info('[contracts cache] hydrated contract objects count', hydratedContracts.length);
+
+      return {
+        contracts: hydratedContracts,
+        asRequests
+      };
+    }
+
     function applyInstallerDataset(data, source = 'local') {
       const remoteContracts = Array.isArray(data?.contracts) ? data.contracts : [];
       state.contracts = mergeContractFieldsFromLocal(remoteContracts);
       state.asRequests = Array.isArray(data?.asRequests) ? data.asRequests : [];
       state.source = source;
+      console.info('[contracts cache] applied dataset', {
+        source,
+        contractsCount: Array.isArray(state.contracts) ? state.contracts.length : 0,
+        asRequestsCount: Array.isArray(state.asRequests) ? state.asRequests.length : 0
+      });
       saveLocal();
     }
 
     function readCachedInstallerDataset() {
+      const cacheStoreRaw = localStorage.getItem(SHEETS_CACHE_STORAGE_KEY) || '';
+      console.info('[contracts cache] cache raw', cacheStoreRaw);
+      const parsedStore = (() => {
+        try {
+          return JSON.parse(cacheStoreRaw || '{}');
+        } catch (error) {
+          console.warn('[contracts cache] failed to parse raw cache store', error);
+          return null;
+        }
+      })();
+      console.info('[contracts cache] parsed cache', parsedStore?.[getInstallerDataCacheStorageKey()] || null);
+
       const cached = authSession.loadSheetsCache(INSTALLER_DATA_CACHE_SCOPE, {
         userKey: getInstallerDataCacheUserKey(),
         ttlMs: SHEETS_CACHE_TTL_MS
       });
-      return cached?.data || null;
+      if (!cached?.data || typeof cached.data !== 'object') {
+        console.warn('[contracts cache] no usable cache entry');
+        return null;
+      }
+
+      const normalized = normalizeCachedInstallerDataset(cached.data);
+      const hasDataset = normalized.contracts.length > 0;
+      if (!hasDataset) {
+        console.warn('[contracts cache] cache dataset is empty, skip cache source badge');
+        return null;
+      }
+
+      return normalized;
     }
 
     function writeCachedInstallerDataset() {
@@ -734,6 +834,15 @@
     function renderContractList() {
       const el = $('#contractList');
       const items = filterContracts();
+      console.info('[contracts cache] final rendered list count', items.length);
+      if (state.source === 'cache' && Array.isArray(state.contracts) && state.contracts.length > 0 && items.length === 0) {
+        console.warn('[contracts cache] source badge is cache but rendered list is empty', {
+          contractsCount: state.contracts.length,
+          adminId: state.currentAdminId,
+          adminName: state.currentAdminName,
+          adminPhone: state.currentAdminPhone
+        });
+      }
       renderStats(items);
       const myTotal = getMyInstallerContractsSorted().length;
       const hasKeyword = Boolean(normalizeText(state.filterKeyword));

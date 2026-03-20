@@ -1775,20 +1775,18 @@
     }
 
     function belongsToCurrentInstaller(item) {
+      const installerId = String(state.currentAdminId || '').trim();
       const installerName = normalizeText(getCurrentInstallerName());
       const installerPhone = getCurrentInstallerPhone();
-      if (!installerName && !installerPhone) return false;
+      if (!installerId && !installerName && !installerPhone) return false;
 
-      const itemInstallerPhone = toDigits(item?.installerPhone);
-      const itemInstallerName = normalizeText(item?.installerName);
-
-      if (installerPhone) {
-        if (itemInstallerPhone) return itemInstallerPhone === installerPhone;
-        if (installerName) return itemInstallerName === installerName;
-        return false;
-      }
-
-      return installerName && itemInstallerName === installerName;
+      const itemInstallerId = String(item?.installerId || item?.installerInfo?.installerId || '').trim();
+      const itemInstallerPhone = toDigits(item?.installerPhone || item?.installerInfo?.phone);
+      const itemInstallerName = normalizeText(item?.installerName || item?.installerInfo?.name);
+      const sameId = installerId && itemInstallerId && itemInstallerId === installerId;
+      const sameName = installerName && itemInstallerName && itemInstallerName === installerName;
+      const samePhone = installerPhone && itemInstallerPhone && itemInstallerPhone === installerPhone;
+      return Boolean(sameId || sameName || samePhone);
     }
 
     function getMyInstallerContractsSorted() {
