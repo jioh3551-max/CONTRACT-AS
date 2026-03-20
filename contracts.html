@@ -300,6 +300,7 @@
   </div>
 
   <script src="./assets/aikongkong-session.js"></script>
+  <script src="./assets/aikongkong-share.js"></script>
   <script>
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
@@ -658,6 +659,38 @@
         .catch(() => showStatus(`${label} 복사 실패`, 'error'));
     }
 
+    function buildCustomerShareUrl(contract) {
+      return new URL(`./contract.html?id=${encodeURIComponent(String(contract?.id || '').trim())}`, location.href).toString();
+    }
+
+    function buildAdminShareText(contract) {
+      return [
+        '계약 조회는 아래 링크에서 확인해 주세요.',
+        'A/S 접수는 아이콩콩 고객센터에서 이어서 진행하실 수 있습니다.',
+        contract?.contractNo ? `계약번호: ${contract.contractNo}` : '',
+        `고객센터: ${new URL('./', location.href).toString()}`
+      ].filter(Boolean).join('\n');
+    }
+
+    async function shareContractForCustomer(contractId) {
+      const contract = state.contracts.find((item) => String(item?.id || '') === String(contractId || ''));
+      if (!contract) {
+        showStatus('공유할 계약을 찾지 못했습니다.', 'error');
+        return;
+      }
+
+      const result = await window.IkongkongShare.shareLink({
+        title: '아이콩콩 고객 안내',
+        text: buildAdminShareText(contract),
+        url: buildCustomerShareUrl(contract),
+        onStatus: (message, type) => showStatus(message, type === 'error' ? 'error' : 'success')
+      });
+
+      if (!result?.ok && !result?.cancelled) {
+        showStatus('공유를 완료하지 못했습니다.', 'error');
+      }
+    }
+
     function csvEscape(value) {
       const text = String(value == null ? '' : value);
       return `"${text.replace(/"/g, '""')}"`;
@@ -735,6 +768,7 @@
             <div class="actions" style="margin-top:10px;">
               <button class="btn tiny outline" type="button" data-copy="${(c.contractNo || '').replace(/"/g, '&quot;')}" data-copy-label="계약번호">계약번호 복사</button>
               <button class="btn tiny outline" type="button" data-copy="${(c.phone || '').replace(/"/g, '&quot;')}" data-copy-label="연락처">연락처 복사</button>
+              <button class="btn tiny outline" type="button" data-share-contract="${String(c.id || '').replace(/"/g, '&quot;')}">고객에게 공유</button>
               <a class="btn tiny secondary" href="./admin.html?view=contract&edit=${encodeURIComponent(c.id)}">불러와 수정</a>
               <a class="btn tiny secondary" href="${authSession.withReturnTo(`./contract.html?id=${encodeURIComponent(c.id)}`, `./contracts.html`)}">계약서 보기</a>
             </div>
@@ -864,6 +898,12 @@
     $('#exportCsvBtn').addEventListener('click', exportContractsCsv);
 
     $('#contractList').addEventListener('click', (e) => {
+      const shareBtn = e.target.closest('[data-share-contract]');
+      if (shareBtn) {
+        shareContractForCustomer(shareBtn.dataset.shareContract);
+        return;
+      }
+
       const btn = e.target.closest('[data-copy]');
       if (!btn) return;
       copyText(btn.dataset.copy, btn.dataset.copyLabel || '텍스트');

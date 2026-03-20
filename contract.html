@@ -703,8 +703,8 @@
     </section>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
   <script src="./assets/aikongkong-session.js"></script>
+  <script src="./assets/aikongkong-share.js"></script>
   <script>
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
@@ -1144,30 +1144,9 @@
 
     function primeContractShareAsset(contract) {
       const key = getShareAssetKey(contract);
-      if (!key) {
-        resetShareAsset();
-        return;
-      }
-
-      if (state.shareAssetKey === key && (state.shareAssetFile || state.shareAssetPromise)) return;
       state.shareAssetKey = key;
       state.shareAssetFile = null;
-
-      state.shareAssetPromise = new Promise((resolve) => {
-        window.requestAnimationFrame(() => {
-          window.setTimeout(async () => {
-            try {
-              const file = await createContractShareFile(contract);
-              if (state.shareAssetKey === key) state.shareAssetFile = file;
-            } catch (_) {
-              if (state.shareAssetKey === key) state.shareAssetFile = null;
-            } finally {
-              if (state.shareAssetKey === key) state.shareAssetPromise = null;
-              resolve();
-            }
-          }, 80);
-        });
-      });
+      state.shareAssetPromise = null;
     }
 
     function setShareButtonBusy(isBusy) {
@@ -1246,6 +1225,17 @@
       return copied;
     }
 
+    function buildContractShareText(contract, entry) {
+      const baseLine = entry?.role === 'admin'
+        ? '고객 확인용 계약서와 A/S 접수 안내를 아래 링크로 전달해 주세요.'
+        : '계약 조회는 아래 링크에서 확인해 주세요. A/S 접수는 같은 서비스에서 이어서 진행하실 수 있습니다.';
+      const supportLine = `${SHARE_SITE_URL}`;
+      const contractNo = String(contract?.contractNo || '').trim();
+      return [baseLine, contractNo ? `계약번호: ${contractNo}` : '', `고객센터: ${supportLine}`]
+        .filter(Boolean)
+        .join('\n');
+    }
+
     async function shareContract() {
       const contract = getCurrentContract();
       if (!contract) {
@@ -1264,41 +1254,20 @@
         return;
       }
 
-      state.shareBusy = true;
+      const entry = loadEntrySession() || {};
+      setShareButtonBusy(true);
 
       try {
-        if (navigator.share) {
-          const shareFile = state.shareAssetKey === getShareAssetKey(contract) ? state.shareAssetFile : null;
-          await shareWithNativeSheet(payload, shareFile);
-          setTopState(true, shareFile ? '기기 기본 공유 창을 열었습니다. 이미지로 전달할 수 있습니다.' : '기기 기본 공유 창을 열었습니다.');
-          return;
+        const result = await window.IkongkongShare.shareLink({
+          title: entry?.role === 'admin' ? '고객 안내 링크' : '시공 계약서',
+          text: buildContractShareText(contract, entry),
+          url: payload.url,
+          onStatus: (message, type) => setTopState(type !== 'error', message)
+        });
+
+        if (!result?.ok && !result?.cancelled) {
+          setTopState(false, '공유를 완료하지 못했습니다.');
         }
-
-        setShareButtonBusy(true);
-        setTopState(true, '공유 창을 준비 중입니다.');
-        const copied = await copyContractLinkWithFallback(payload.url);
-        if (copied) {
-          setTopState(true, '공유 기능을 지원하지 않는 환경입니다. 링크가 복사되었습니다.');
-          return;
-        }
-
-        setTopState(false, '공유를 지원하지 않는 환경이며 링크 복사도 사용할 수 없습니다.');
-      } catch (error) {
-        if (error?.name === 'AbortError' || error?.name === 'NotAllowedError') {
-          setTopState(true, '공유를 취소했습니다.');
-          return;
-        }
-
-        setShareButtonBusy(true);
-        try {
-          const copied = await copyContractLinkWithFallback(payload.url);
-          if (copied) {
-            setTopState(true, '공유 창을 열지 못해 링크를 대신 복사했습니다.');
-            return;
-          }
-        } catch (_) {}
-
-        setTopState(false, error?.message || '공유를 완료하지 못했습니다.');
       } finally {
         setShareButtonBusy(false);
         setShareButtonAvailability(contract);
@@ -1306,6 +1275,12 @@
     }
 
     function openCustomerSms() {
+      const entry = loadEntrySession();
+      if (entry?.role !== 'admin') {
+        setTopState(false, '고객 화면에서는 직접 발송 기능을 사용하지 않습니다.');
+        return;
+      }
+
       const contract = getCurrentContract();
       if (!contract) {
         setTopState(false, '문자를 보낼 계약 데이터가 없습니다.');
@@ -1424,6 +1399,15 @@
         back.href = './customer.html';
         back.textContent = '메인';
       }
+      updateActionVisibility(entry);
+    }
+
+    function updateActionVisibility(entry = loadEntrySession()) {
+      const smsBtn = $('#smsBtn');
+      if (!smsBtn) return;
+      const canSendCustomerLink = entry?.role === 'admin';
+      smsBtn.hidden = !canSendCustomerLink;
+      smsBtn.disabled = !canSendCustomerLink;
     }
 
     function logoutFromContract() {

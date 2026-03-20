@@ -566,6 +566,7 @@
   </div>
 
   <script src="./assets/aikongkong-session.js"></script>
+  <script src="./assets/aikongkong-share.js"></script>
   <script>
     const STORAGE_KEY = 'aikongkong_contract_as_v2';
     const ENTRY_SESSION_KEY = 'aikongkong_entry_session_v1';
@@ -1153,6 +1154,42 @@
         .catch(() => setDataSourceNotice(`${label} 복사 실패`, 'error'));
     }
 
+    function getCustomerShareUrl() {
+      const contractId = String(state.currentCustomer?.id || '').trim();
+      if (contractId) {
+        return new URL(`./contract.html?id=${encodeURIComponent(contractId)}`, location.href).toString();
+      }
+      return new URL('./?manual=1', location.href).toString();
+    }
+
+    function buildCustomerShareText() {
+      const contractNo = String(state.currentCustomer?.contractNo || '').trim();
+      return [
+        '계약 조회는 아래 링크에서 확인해 주세요.',
+        'A/S 접수는 아이콩콩 고객센터에서 이어서 진행하실 수 있습니다.',
+        contractNo ? `계약번호: ${contractNo}` : '',
+        `고객센터: ${new URL('./', location.href).toString()}`
+      ].filter(Boolean).join('\n');
+    }
+
+    async function shareCustomerPortal() {
+      if (!state.currentCustomer) {
+        setDataSourceNotice('공유할 계약 정보를 찾지 못했습니다.', 'error');
+        return;
+      }
+
+      const result = await window.IkongkongShare.shareLink({
+        title: '아이콩콩 계약 조회',
+        text: buildCustomerShareText(),
+        url: getCustomerShareUrl(),
+        onStatus: (message, type) => setDataSourceNotice(message, type === 'error' ? 'error' : 'success')
+      });
+
+      if (!result?.ok && !result?.cancelled) {
+        setDataSourceNotice('공유를 완료하지 못했습니다.', 'error');
+      }
+    }
+
     function getStatusBadge(status) {
       if (status === '처리완료') return '<span class="badge green">처리완료</span>';
       if (status === '처리중') return '<span class="badge yellow">처리중</span>';
@@ -1187,12 +1224,12 @@
       `;
       actionsEl.innerHTML = `
         <button id="heroGoAsBtn" class="btn primary" type="button">AS 접수하기</button>
-        <button id="heroCopyContractBtn" class="btn outline" type="button">계약번호 복사</button>
+        <button id="heroShareBtn" class="btn outline" type="button">공유하기</button>
         <button id="heroGoAsListBtn" class="btn secondary" type="button">내 AS 보기</button>
       `;
 
       $('#heroGoAsBtn')?.addEventListener('click', () => goPage('customerAsFormPage'));
-      $('#heroCopyContractBtn')?.addEventListener('click', () => copyText(c.contractNo, '계약번호'));
+      $('#heroShareBtn')?.addEventListener('click', shareCustomerPortal);
       $('#heroGoAsListBtn')?.addEventListener('click', () => goPage('customerAsListPage'));
     }
 
@@ -1245,6 +1282,7 @@
           ${signHtml}
           <div class="actions">
             <button class="btn outline" type="button" id="copyContractBtn">계약번호 복사</button>
+            <button class="btn outline" type="button" id="shareCustomerContractBtn">공유하기</button>
             <button class="btn secondary" type="button" id="moveToAsFormBtn">AS 접수하기</button>
             <a class="btn secondary" href="${authSession.withReturnTo(`./contract.html?id=${encodeURIComponent(c.id || '')}`, `./customer.html?page=${encodeURIComponent(state.currentPage || 'customerContractPage')}`)}">계약서 페이지 열기</a>
           </div>
@@ -1252,6 +1290,7 @@
       `;
 
       $('#copyContractBtn').addEventListener('click', () => copyText(c.contractNo, '계약번호'));
+      $('#shareCustomerContractBtn').addEventListener('click', shareCustomerPortal);
       $('#moveToAsFormBtn').addEventListener('click', () => goPage('customerAsFormPage'));
     }
 
